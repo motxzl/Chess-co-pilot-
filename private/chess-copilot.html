@@ -61,11 +61,47 @@ button.pri,button.on{box-shadow:0 5px 18px rgba(79,191,127,.14)}.card{border-rad
 #ef{transition:width .45s cubic-bezier(.2,.8,.2,1)}#et{font-variant-numeric:tabular-nums}.ch{transition:background .16s ease,border-color .16s ease}.ch:hover{background:#26382e;border-color:var(--acc)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 @media(max-width:520px){.wrap{padding:12px}.card{padding:12px}.row{gap:8px}.bd{--sz:min(calc((100vw - 28px) / 8 * .8),56px)}}
+
+/* Premium product layer */
+:root{--bg:#0b0e0d;--card:#121816;--ink:#edf2ef;--mute:#8b9992;--line:#26332d;--acc:#c7a66a;--on:#10110e;--lt:#e6ddc9;--dk:#75917f}
+body{background:#0b0e0d;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1240px;padding:22px 24px 36px}.top{padding:4px 0 18px;border-bottom:1px solid #202a25}
+.brand-lockup,.top-actions{display:flex;align-items:center;gap:13px}.brand-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#1b2821;color:#d3b77f;font-size:25px;border:1px solid #344238}
+h1{font-size:21px;letter-spacing:-.035em}.brand-sub,.eyebrow{font-size:10px;letter-spacing:.18em;color:#c7a66a;font-weight:800}
+.top-actions{gap:12px}#st{font-size:11px;padding:7px 11px;background:#111815}
+button{border-radius:10px;background:#18211c;border-color:#2a3930;transition:background .15s,border-color .15s,transform .15s;box-shadow:none}
+button:hover{transform:translateY(-1px);border-color:#806d4b;box-shadow:none}
+button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-shadow:none}
+.grid{gap:22px;margin-top:20px;grid-template-columns:minmax(0,1.12fr) minmax(320px,.88fr)}
+.card{background:#121816;border:1px solid #26332d;border-radius:15px;padding:16px;box-shadow:0 14px 35px rgba(0,0,0,.15)}
+.bw{max-width:min(100%,720px);margin:0 auto}#eb{height:24px;border-radius:7px;background:#202a24}#ef{background:#c7a66a}
+.bd{width:100%;max-width:720px;--sz:clamp(34px,7.4vw,76px);border-radius:9px;position:relative;overflow:hidden;isolation:isolate;box-shadow:0 18px 44px rgba(0,0,0,.32);border:1px solid #344238}
+.sq{background-image:none;transition:background-color .12s}.sq.l{background-color:#e6ddc9}.sq.d{background-color:#75917f}
+.sq.sel{outline:3px solid #d4b36f;outline-offset:-3px}.sq.last{box-shadow:inset 0 0 0 3px rgba(199,166,106,.85)}.sq.last-from{box-shadow:inset 0 0 0 3px rgba(199,166,106,.35)}
+.pw,.pb{font-family:"Segoe UI Symbol","Noto Sans Symbols 2",serif;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25));line-height:1}
+.pw{color:#fffdf5;text-shadow:0 1px 2px #26332d,0 0 2px #26332d}.pb{color:#18201b;text-shadow:0 1px 1px rgba(255,255,255,.25)}
+.sq em{font-size:clamp(8px,1.3vw,11px);color:#25332b}#ar{z-index:3}
+#hs{display:flex;flex-wrap:wrap;gap:5px}.ch{background:#19221d;border:1px solid transparent;border-radius:7px;padding:7px 9px;margin:0;min-height:34px;font-variant-numeric:tabular-nums}
+.ch.on{background:#c7a66a;color:#17150f}.ch.x3{color:#e2bd73}.ch.x4{color:#e69a73}.ch.x5{color:#ed7770}
+#rec .big{font-size:34px;letter-spacing:-.04em;color:#e4c88f}.note{border-left-width:3px;padding:9px 11px;background:#171f1b;border-radius:0 8px 8px 0}
+.dialog-backdrop{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.dialog-backdrop.open{display:flex}
+.dialog{width:min(440px,100%);position:relative;padding:28px;border:1px solid #39483e;border-radius:18px;background:#111815;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.dialog h2{font-size:27px;letter-spacing:-.04em;margin:8px 0}.dialog-close{position:absolute;right:14px;top:14px;min-width:36px;min-height:36px;font-size:22px;padding:0}
+.setup-block{display:grid;gap:7px;margin-top:18px}.setup-block label{font-size:12px;color:#a9b4ad;font-weight:700}
+.dialog select{width:100%;min-height:46px;border-radius:9px;padding:0 12px;background:#19221d;border:1px solid #344238;color:#edf2ef}
+.bot-profile{display:flex;align-items:center;gap:12px;padding:14px;margin-top:20px;background:#18211c;border:1px solid #2b3930;border-radius:12px}
+.bot-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:#26372d;color:#d2b477;font-size:22px}
+.engine-tag{margin-left:auto;font-size:9px;letter-spacing:.12em;color:#c7a66a;font-weight:800}
+.start-game{width:100%;margin-top:18px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;min-height:50px}
+.dialog-foot{line-height:1.5;margin:12px 0 0}.advanced-panel{margin-top:12px}.advanced-panel #oc{display:none}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.wrap{width:100%;padding:14px}.bw{max-width:min(100%,min(88vw,620px))}.bd{--sz:clamp(30px,10vw,66px)}}
+@media(max-width:520px){.top{align-items:flex-start}.top-actions{flex-direction:column;align-items:flex-end;gap:8px}.top-actions #openBot{min-height:40px;padding:0 10px;font-size:12px}.wrap{padding:12px}.grid{gap:12px}.card{padding:13px}.bd{--sz:clamp(29px,10.8vw,48px)}.dialog{padding:23px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<div class="top"><h1>Chess Co-Pilot</h1><span id="st">Engine: loading Stockfish…</span></div>
+<div class="top"><div class="brand-lockup"><div class="brand-mark">♞</div><div><h1>Chess Co-Pilot</h1><div class="brand-sub">THINK DEEPER. PLAY SMARTER.</div></div></div><div class="top-actions"><span id="st">Engine: loading Stockfish…</span><button id="openBot" class="pri">♟ PLAY A BOT</button></div></div>
+<div id="botDialog" class="dialog-backdrop" aria-hidden="true"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="botTitle"><button id="closeBot" class="dialog-close" aria-label="Close">×</button><div class="eyebrow">NEW GAME</div><h2 id="botTitle">Choose your opponent</h2><p class="mute">Set your side and challenge the engine.</p><div class="setup-block"><label for="botColor">Play as</label><select id="botColor"><option value="random">Random color</option><option value="w">White</option><option value="b">Black</option></select></div><div class="setup-block"><label for="botDifficulty">Bot strength</label><select id="botDifficulty"><option value="beginner">Beginner</option><option value="easy">Easy</option><option value="intermediate" selected>Intermediate</option><option value="advanced">Advanced</option><option value="expert">Expert</option></select></div><div class="bot-profile"><span class="bot-avatar">♞</span><div><b id="botLevelName">Intermediate</b><div id="botLevelDescription" class="sm mute">A balanced training opponent.</div></div><span class="engine-tag">STOCKFISH</span></div><button id="startBot" class="pri start-game">Start Game <span>→</span></button><p class="sm mute dialog-foot">Difficulty uses Stockfish search settings. If Stockfish is unavailable, the game will not pretend to provide a bot.</p></section></div>
 <div class="grid">
 <div>
 <div class="bw">
