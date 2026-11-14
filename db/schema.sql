@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS access_codes (id UUID PRIMARY KEY, code_hash TEXT NOT NULL UNIQUE, code_ciphertext TEXT NOT NULL, code_iv TEXT NOT NULL, code_tag TEXT NOT NULL, invite_hash TEXT NOT NULL UNIQUE, invite_ciphertext TEXT NOT NULL, invite_iv TEXT NOT NULL, invite_tag TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NULL, redeemed_at TIMESTAMPTZ NULL, revoked_at TIMESTAMPTZ NULL);
+CREATE INDEX IF NOT EXISTS access_codes_created_at_idx ON access_codes(created_at DESC);
+CREATE TABLE IF NOT EXISTS access_sessions (id UUID PRIMARY KEY, session_hash TEXT NOT NULL UNIQUE, role TEXT NOT NULL CHECK(role IN ('guest','admin')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL);
+CREATE INDEX IF NOT EXISTS access_sessions_expiry_idx ON access_sessions(expires_at);
+CREATE TABLE IF NOT EXISTS security_rate_limits (bucket_key TEXT PRIMARY KEY, window_started_at TIMESTAMPTZ NOT NULL, attempts INTEGER NOT NULL CHECK(attempts>=0));
