@@ -137,7 +137,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 <div class="card" id="nt"></div>
 <div class="card"><div class="row" style="margin-top:0"><b>Moves</b><button id="rv" style="margin-left:auto">Review game</button></div>
 <div id="hs"></div><div id="rs" class="sm" style="margin-top:6px"></div>
-<details class="sm mute" style="margin-top:6px"><summary>How moves are rated</summary>Rating compares engine evals before and after each move, from the mover’s side, in pawns lost: Best ≤0.10 or the engine’s move, Excellent ≤0.30, Good ≤0.80, Inaccuracy ≤1.5 (?!), Mistake ≤3 (?), Blunder over 3 (??). Mate scores count as ±10. Ratings appear only after Review game, and quick review depths can be noisy.</details></div>
+<details class="sm mute" style="margin-top:6px"><summary>How moves are rated</summary>Each move is compared with Stockfish evaluations of the position before and after it, from the mover’s perspective. Labels use evaluation loss: Best (engine’s top move), Excellent (≤0.10 pawns), Good (≤0.30), Inaccuracy (≤0.80), Mistake (≤1.50), and Blunder (>1.50). Brilliant is reserved for a best move that makes a sound, immediately capturable piece sacrifice. Book is not shown because this build has no opening database. Ratings remain pending if the engine cannot complete both position analyses.</details></div>
 </div>
 </div>
 <p class="sm mute">Moves are validated by chess.js. Evals and lines come from the engine named in the status pill. The notes are rule-based checks, not engine output.</p>
@@ -369,7 +369,7 @@ function hist(){
  var h="",i,m,t,c,s=[],a,bs;
  for(i=0;i<S.line.length;i++){
   m=S.line[i];t=S.fens[i].split(" ");c=cls(i);
-  h+="<button class='ch"+(i+1===S.ply?" on":"")+(c&&c.k>=4?" x"+c.k:"")+"' data-i='"+i+"' title='"+(c?CN[c.k]:"")+"'>"+(t[1]==="w"?t[5]+". ":(i===0?t[5]+"… ":""))+m.san+(c?CM[c.k]:"")+"</button>";
+  h+="<button class='ch"+(i+1===S.ply?" on":"")+(c?" q"+c.k+(c.k>=4?" x"+c.k:""):"")+"' data-i='"+i+"' title='"+(c?CN[c.k]+" — evaluation loss "+(c.loss/100).toFixed(2)+" pawns"+(c.brilliant?" — sound sacrifice":""):"Analysis pending")+"'>"+(t[1]==="w"?t[5]+". ":(i===0?t[5]+"… ":""))+m.san+(c?CM[c.k]:"")+"</button>";
   if(c&&c.k>=5){a=S.evals[S.fens[i]];bs=pvSan(S.fens[i],[a.best],1)[0];s.push((t[1]==="w"?t[5]+". ":t[5]+"… ")+m.san+" "+CN[c.k]+" (lost about "+(Math.min(c.loss,1000)/100).toFixed(1)+"), engine preferred "+(bs?bs.san:"?"))}
  }
  $("hs").innerHTML=h||"<span class='mute sm'>No moves yet.</span>";
