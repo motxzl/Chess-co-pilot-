@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server"; export function jsonError(message:string,status:number){return NextResponse.json({error:message},{status,headers:{"Cache-Control":"no-store"}});} export function origin(req:Request){return process.env.APP_ORIGIN||new URL(req.url).origin;}
