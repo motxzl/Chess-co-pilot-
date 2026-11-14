@@ -44,7 +44,7 @@ try {
   await page.locator("#botDifficulty").selectOption("beginner");
   await page.locator("#startBot").click();
   assert.equal(await page.locator("#botSkill").inputValue(), "2", "Beginner must configure real Stockfish skill level");
-  assert.equal(await page.locator("#botDepth").inputValue(), "5", "Beginner must configure engine search depth");
+  assert.equal(await page.locator("#botDepth").inputValue(), "4", "Beginner must configure engine search depth");
   await page.waitForFunction(() => document.querySelectorAll("#hs .ch").length === 1, { timeout: 15000 });
   await page.waitForFunction(() => document.querySelector("#ar")?.querySelector("line"), { timeout: 15000 });
   assert.ok(await page.locator("#ar line").count(), "analysis arrow must appear during bot games");
