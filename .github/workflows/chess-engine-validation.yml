@@ -24,6 +24,8 @@ jobs:
       - name: Validate chess engine JavaScript
         run: node scripts/validate-engine.mjs
       - name: Build Next.js application
+        env:
+          DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
         run: |
           npm install
           npm run build
