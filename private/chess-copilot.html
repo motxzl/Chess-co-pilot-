@@ -412,12 +412,12 @@ $("ex").onclick=function(){
  p=g.pgn();$("in").value=p;$("in").select();
  try{navigator.clipboard.writeText(p);msg("PGN copied and shown in the box.")}catch(e){msg("PGN is in the box. Select and copy it.")}
 };
-$("nw").onclick=function(){S.start=ST;S.line=[];S.ply=0;S.evals={};msg("");refresh()};
+$("nw").onclick=function(){S.start=ST;S.line=[];S.ply=0;S.evals={};S.bot=null;S.flight=[];msg("");refresh()};
 $("b0").onclick=function(){S.ply=0;refresh()};
 $("b1").onclick=function(){S.ply=Math.max(0,S.ply-1);refresh()};
 $("b2").onclick=function(){S.ply=Math.min(S.line.length,S.ply+1);refresh()};
 $("b3").onclick=function(){S.ply=S.line.length;refresh()};
-$("un").onclick=function(){if(S.ply>0){S.line=S.line.slice(0,S.ply-1);S.ply=S.line.length;refresh()}};
+$("un").onclick=function(){if(S.ply>0){var remove=$("bo").checked&&S.side!=="both"&&!botTurn()?2:1;S.line=S.line.slice(0,Math.max(0,S.ply-remove));S.ply=S.line.length;S.bot=null;refresh()}};
 $("fl").onclick=function(){S.flip=!S.flip;draw()};
 $("hs").onclick=function(e){var b=e.target.closest(".ch");if(b){S.ply=+b.getAttribute("data-i")+1;refresh()}};
 Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.onclick=function(){
