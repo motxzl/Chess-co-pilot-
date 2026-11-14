@@ -292,8 +292,7 @@ function draw(){
   if(S.ply>0&&S.line[S.ply-1]){var lm=S.line[S.ply-1];if(n===lm.to)cl2+=" last arrived";if(n===lm.from)cl2+=" last-from";}
   for(k=0;k<hg.length;k++)if(hg[k].s===n)cl2+=hg[k].c===t?" hm":" ho";
   inner="";
-  if(p){var hiddenFlight=S.flight.some(function(x){return x.to===n});inner+="<span class='p"+p.color+"'>"+GL[p.type]+"\uFE0E</span>";
-  if(p&&hiddenFlight)inner=inner.replace("flight-destination","flight-destination");
+  if(p){var hiddenFlight=S.flight.some(function(x){return x.to===n});inner+="<span class='p"+p.color+(hiddenFlight?" flight-destination":"")+"'>"+GL[p.type]+"\uFE0E</span>";}
   if(lg.some(function(m){return m.to===n}))inner+="<u></u>";
   if(j===0)inner+="<em class='rk'>"+(8-r)+"</em>";
   if(i===7)inner+="<em class='fl'>"+"abcdefgh".charAt(c)+"</em>";
