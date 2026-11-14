@@ -21,15 +21,33 @@ page.on("response", (response) => { if (response.status() >= 400) console.error(
 try {
   await page.goto("http://127.0.0.1:4173", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelectorAll("#bd .sq").length === 64);
+  const desktopBoard = await page.locator(".board-stage").boundingBox();
+  assert.ok(desktopBoard && Math.abs(desktopBoard.width - desktopBoard.height) < 1, "desktop board stage must be square");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileBoard = await page.locator(".board-stage").boundingBox();
+  assert.ok(mobileBoard && Math.abs(mobileBoard.width - mobileBoard.height) < 1, "mobile board stage must be square");
+  const boardBox = await page.locator("#bd").boundingBox();
+  assert.ok(boardBox && Math.abs(boardBox.width - mobileBoard.width) < 1 && Math.abs(boardBox.height - mobileBoard.height) < 1, "board must fill the square stage");
+  const arrowBox = await page.locator("#ar").boundingBox();
+  assert.ok(arrowBox && Math.abs(arrowBox.x - boardBox.x) < 1 && Math.abs(arrowBox.y - boardBox.y) < 1 && Math.abs(arrowBox.width - boardBox.width) < 1 && Math.abs(arrowBox.height - boardBox.height) < 1, "arrow overlay must align exactly with the board");
   await page.waitForTimeout(16000);
   const engineStatus = await page.locator("#st").textContent();
   if (!engineStatus?.startsWith("Engine:") || !engineStatus.includes("Stockfish")) throw new Error("Stockfish failed to initialize: " + engineStatus + "; page errors: " + pageErrors.join(" | "));
+
+  await page.locator(".advanced-panel summary").click();
+  assert.equal(await page.locator("#oc").isVisible(), true, "advanced engine settings must be visible");
+  await page.locator("#botSkill").fill("7");
+  assert.equal(await page.locator("#botSkillValue").textContent(), "7", "strength slider must update its displayed value");
 
   await page.locator("#openBot").click();
   await page.locator("#botColor").selectOption("b");
   await page.locator("#botDifficulty").selectOption("beginner");
   await page.locator("#startBot").click();
+  assert.equal(await page.locator("#botSkill").inputValue(), "2", "Beginner must configure real Stockfish skill level");
+  assert.equal(await page.locator("#botDepth").inputValue(), "5", "Beginner must configure engine search depth");
   await page.waitForFunction(() => document.querySelectorAll("#hs .ch").length === 1, { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector("#ar")?.querySelector("line"), { timeout: 15000 });
+  assert.ok(await page.locator("#ar line").count(), "analysis arrow must appear during bot games");
   assert.equal(await page.locator("#bd .sq").count(), 64, "board must retain 64 squares");
 
   await page.locator("#mv").fill("e7e5");
@@ -63,7 +81,7 @@ try {
   assert.equal(await page.locator("#hs .ch").count(), 1, "en passant should be recorded");
 
   assert.deepEqual(pageErrors, [], "browser should not report uncaught page errors");
-  console.log("Browser smoke tests passed: board, Stockfish bot, undo, restart, promotion, castling, en passant.");
+  console.log("Browser smoke tests passed: square desktop/mobile board, aligned arrow overlay, visible engine settings, applied bot skill/depth, bot analysis arrow, legal bot move, undo, restart, promotion, castling, en passant.");
 } finally {
   await browser.close();
   await new Promise((resolve) => server.close(resolve));
