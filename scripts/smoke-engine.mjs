@@ -14,11 +14,16 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const pageErrors = [];
 page.on("pageerror", (error) => pageErrors.push(error.message));
+page.on("console", (message) => { if (message.type() === "error") console.error("BROWSER CONSOLE:", message.text()); });
+page.on("requestfailed", (request) => console.error("REQUEST FAILED:", request.url(), request.failure()?.errorText));
+page.on("response", (response) => { if (response.status() >= 400) console.error("HTTP ERROR:", response.status(), response.url()); });
 
 try {
   await page.goto("http://127.0.0.1:4173", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelectorAll("#bd .sq").length === 64);
-  await page.waitForFunction(() => /^Engine:/.test(document.querySelector("#st")?.textContent || "") && /Stockfish/.test(document.querySelector("#st")?.textContent || ""), { timeout: 30000 });
+  await page.waitForTimeout(16000);
+  const engineStatus = await page.locator("#st").textContent();
+  if (!engineStatus?.startsWith("Engine:") || !engineStatus.includes("Stockfish")) throw new Error("Stockfish failed to initialize: " + engineStatus + "; page errors: " + pageErrors.join(" | "));
 
   await page.locator("#openBot").click();
   await page.locator("#botColor").selectOption("b");
