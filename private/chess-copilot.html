@@ -118,7 +118,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 </div>
 <div class="row"><input id="mv" placeholder="Move: Nf3, g1f3, or 1. e4 e5 2. Nf3" style="flex:1;min-width:0" autocapitalize="off" autocomplete="off"><button id="mg" class="pri">Play</button></div>
 <div id="ms"></div>
-<details class="card" open><summary>Game setup</summary>
+<details class="card"><summary>Position & PGN tools</summary>
 <div class="row"><span class="sm mute">I play:</span><button data-side="w" class="on">White</button><button data-side="b">Black</button><button data-side="both">Both sides</button></div>
 <textarea id="in" rows="3" placeholder="Paste FEN or PGN to import. Export fills this box."></textarea>
 <div class="row"><button id="ld" class="pri">Import</button><button id="ex">Export PGN</button><button id="nw">New game</button></div>
@@ -127,7 +127,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 <label>Lines <select id="ml"><option>1</option><option selected>2</option><option>3</option></select></label>
 <label><input type="checkbox" id="arw" checked> Arrow</label></div>
 </details>
-<details class="card" open><summary>Opponent bot and strength</summary><div id="oc"></div>
+<details class="card advanced-panel"><summary>Advanced engine settings</summary><div id="oc"></div>
 </details>
 </div>
 <div>
@@ -485,7 +485,7 @@ function nv(id){var x=+$("n_"+id).value;return Math.max(+$("n_"+id).min,Math.min
 function getS(){return{S:nv("S"),F:nv("F"),T:nv("T"),P:nv("P"),sev:$("sv").value,dep:$("bd2").value,cons:$("cs").value,hum:$("hu").checked,sk:$("sk").checked}}
 function setS(s){["S","F","T","P"].forEach(function(k){$("n_"+k).value=$("r_"+k).value=s[k]});$("sv").value=s.sev;$("bd2").value=s.dep;$("cs").value=s.cons;$("hu").checked=!!s.hum;$("sk").checked=!!s.sk}
 function ctl(){var c=getS();c.on=$("bo").checked;return c}
-function eff(c){var d=c.dep==="auto"?(c.S>=100?24:Math.round(2+c.S*.18)):+c.dep;return{d:d,mt:c.S>=100?5000:200+c.S*15,pool:c.S>=90?3:6,skill:(c.sk&&E.opts["Skill Level"])?Math.round(c.S/5):undefined}}
+function eff(c){var d=c.dep==="auto"?(c.S>=100?20:c.S>=80?16:c.S>=55?12:c.S>=30?8:4):+c.dep;return{d:d,mt:c.S>=100?1500:c.S>=80?1000:c.S>=55?650:c.S>=30?400:250,pool:1,skill:(c.sk&&E.opts["Skill Level"])?Math.max(0,Math.min(20,Math.round(c.S/5))):undefined}}
 function oppInfo(){
  var c=ctl(),e=eff(c),sk=E.opts["Skill Level"];
  $("skw").style.display=sk?"":"none";
@@ -509,14 +509,11 @@ function fin(fen,t,job,e,c){
 }
 function kOf(l){return l<=10?0:l<=30?1:l<=80?2:l<=150?3:l<=300?4:5}
 function renderBot(){
- var b=S.bot,el=$("bp"),ch,bs,k,c2,v,h;
+ var b=S.bot,el=$("bp"),ch;
  if(!b||!$("bs").checked||S.fens[b.i]!==b.before){el.style.display="none";return}
- ch=pvSan(b.before,[b.chosen],1)[0];bs=pvSan(b.before,[b.best],1)[0];k=kOf(b.loss);
- h="<b>Opponent bot move (private)</b><div>Played <b>"+(ch?ch.san:b.chosen)+"</b>. Its top candidate was <b>"+(bs?bs.san:b.best)+"</b>. Reason: "+b.why+".</div><div class='sm'>Bot search, depth "+b.d+": estimated loss "+b.loss+" cp, "+CN[k]+". <b>Provisional</b> (shallow bot search"+(b.single?", single candidate":"")+").</div>";
- if(b.vf){c2=cls(b.i);v=S.evals[b.before];bs=v?pvSan(b.before,[v.best],1)[0]:null;
-  h+=c2?"<div class='sm'>Analysis engine: best "+(bs?bs.san:"?")+", loss about "+Math.max(0,Math.round(c2.loss))+" cp, <b>"+CN[c2.k]+"</b>.</div>":"<div class='sm mute'>Waiting for analysis of the position after the move.</div>"}
- else h+="<button id='vf'>Verify with analysis engine</button>";
- el.innerHTML=h;el.style.display="block";
+ ch=pvSan(b.before,[b.chosen],1)[0];
+ el.innerHTML="<b>Bot move</b><div>Stockfish played <b>"+(ch?ch.san:b.chosen)+"</b> using the selected strength settings.</div><div class='sm mute'>Move-quality ratings are calculated separately by game review; no estimated rating is invented here.</div>";
+ el.style.display="block";
 }
 $("bp").onclick=function(e){
  var b=S.bot;if(e.target.id!=="vf"||!b||S.rev)return;
@@ -540,6 +537,25 @@ $("pR").onclick=function(){var n=$("pn").value.trim();if(n){PF.list[PF.sel].n=n;
 $("pD").onclick=function(){PF.list.splice(PF.sel+1,0,{n:PF.list[PF.sel].n+" copy",s:getS()});PF.sel++;pfSave();pfDraw()};
 $("pX").onclick=function(){if(PF.list.length<2){msg("Keep at least one profile.");return}PF.list.splice(PF.sel,1);PF.sel=0;pfSave();pfUse()};
 $("pZ").onclick=function(){PF={list:defs(),sel:0};pfSave();pfUse()};
+/* Play-a-Bot setup */
+function openBotDialog(){var d=$("botDialog");d.classList.add("open");d.setAttribute("aria-hidden","false");$("botColor").focus()}
+function closeBotDialog(){var d=$("botDialog");d.classList.remove("open");d.setAttribute("aria-hidden","true")}
+$("openBot").onclick=openBotDialog;$("closeBot").onclick=closeBotDialog;
+$("botDialog").addEventListener("click",function(e){if(e.target===$("botDialog"))closeBotDialog()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeBotDialog()});
+var BOT_LEVELS={beginner:{label:"Beginner",strength:10,depth:4,description:"A gentle opponent for learning the basics."},easy:{label:"Easy",strength:30,depth:8,description:"A relaxed game with room to practise."},intermediate:{label:"Intermediate",strength:55,depth:12,description:"A balanced training opponent."},advanced:{label:"Advanced",strength:80,depth:16,description:"A demanding opponent that finds deeper tactics."},expert:{label:"Expert",strength:100,depth:20,description:"Full-strength engine play within the configured search budget."}};
+$("botDifficulty").onchange=function(){var x=BOT_LEVELS[this.value];$("botLevelName").textContent=x.label;$("botLevelDescription").textContent=x.description};
+$("startBot").onclick=function(){
+ if(!E.ok){msg("Stockfish is still loading or unavailable. Wait for the engine status before starting a bot game.");return}
+ var level=BOT_LEVELS[$("botDifficulty").value],side=$("botColor").value;
+ if(side==="random")side=Math.random()<.5?"w":"b";
+ S.start=ST;S.line=[];S.ply=0;S.evals={};S.bot=null;S.side=side;S.flip=side==="b";S.rev=false;
+ $("bo").checked=true;$("bs").checked=true;
+ setS({S:level.strength,F:0,T:100,P:100,sev:"tiny",dep:String(level.depth),cons:"consistent",hum:false,sk:true});
+ Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.className=b.getAttribute("data-side")===side?"on":""});
+ $("ps").value="Custom";oppInfo();closeBotDialog();msg("New game started. You are playing "+(side==="w"?"White":"Black")+".");refresh();
+};
+
 setS(PF.list[PF.sel].s);pfDraw();oppInfo();
 E.init();refresh();
 })();
