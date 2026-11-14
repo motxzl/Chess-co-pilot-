@@ -2,7 +2,7 @@ name: Chess engine validation
 
 on:
   push:
-    branches: [premium-engine-ui]
+    branches: [premium-engine-ui, fix-mobile-engine-arrows]
   pull_request:
     branches: [main]
 
