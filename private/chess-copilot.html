@@ -515,7 +515,7 @@ $("startBot").onclick=function(){
  var level=BOT_LEVELS[$("botDifficulty").value],side=$("botColor").value;
  if(side==="random")side=Math.random()<.5?"w":"b";
  S.start=ST;S.line=[];S.ply=0;S.evals={};S.bot=null;S.side=side;S.flip=side==="b";S.rev=false;
- $("bo").checked=true;$("bs").checked=true;
+ $("bo").checked=true;$("bs").checked=true;$("arw").checked=true;
  $("botSkill").value=level.skill;$("botSkillValue").textContent=String(level.skill);$("botDepth").value=String(level.depth);$("botTime").value=String(level.time);updateEngineSettingsStatus();
  Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.className=b.getAttribute("data-side")===side?"on":""});
  updateEngineSettingsStatus();closeBotDialog();msg("New game started. You are playing "+(side==="w"?"White":"Black")+".");refresh();
