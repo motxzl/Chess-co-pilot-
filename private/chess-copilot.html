@@ -496,18 +496,15 @@ function rng(sd){return function(){sd|=0;sd=sd+0x6D2B79F5|0;var t=Math.imul(sd^s
 function hash(s){var h=2166136261,i;for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function botMove(id){
  var c=ctl(),e=eff(c),fen=G.fen(),t=G.turn(),job;
- job={fen:fen,turn:t,dmax:e.d,mt:e.mt,mpv:Math.min(e.pool,G.moves().length),skill:e.skill,fb:function(){setTimeout(function(){if(id===S.wanted)fin(fen,t,null,e,c)},30)}};
- E.go(job).then(function(j){if(id===S.wanted&&!j.dead&&!j.fbd)fin(fen,t,j.lines,e,c)});
+ if(!E.ok){msg("Stockfish is unavailable. A bot game cannot start right now.");return}
+ job={fen:fen,turn:t,dmax:e.d,mt:e.mt,mpv:1,skill:e.skill};
+ E.go(job).then(function(j){if(id!==S.wanted||j.dead)return;if(j.fbd||!j.bestmove||j.bestmove==="(none)"){msg("Stockfish did not return a legal move.");return}fin(fen,t,j,e,c)});
 }
-function fin(fen,t,L,e,c){
- var ms=G.moves({verbose:true}),mp={},cs=[],mv=t==="w"?1:-1,md=0,k,l,r,res,R,m,u;
- ms.forEach(function(x){mp[x.from+x.to+(x.promotion||"")]=x});
- function fc(x){return!!(x.captured||x.promotion||/[+#]/.test(x.san))}
- if(L){for(k in L)md=Math.max(md,L[k].d);for(k in L){l=L[k];u=l.pv[0];if(l.d>=md-1&&mp[u])cs.push({u:u,cp:cl(num(l.sc)*mv),f:fc(mp[u])})}}
- if(!cs.length){r=think(ms);u=r.mv.from+r.mv.to+(r.mv.promotion||"");md=r.d;cs=[{u:u,cp:cl(r.score),f:fc(r.mv)}]}
- R=c.cons==="variable"?Math.random:(c.cons==="mostly"&&Math.random()<.25)?Math.random:rng(hash(fen+c.S+c.F+c.sev+c.T+c.P));
- res=pick(cs,c,R);if(!mp[res.u])res={u:cs[0].u,b:cs[0].u,loss:0,why:"best"};
- m=mp[res.u];S.bot={i:S.line.length,before:fen,chosen:res.u,best:res.b,loss:Math.round(res.loss),why:res.why,d:md,vf:false,single:cs.length<2};
+function fin(fen,t,job,e,c){
+ if(G.fen()!==fen)return;
+ var u=job.bestmove,ms=G.moves({verbose:true}),m=ms.filter(function(x){return x.from+x.to+(x.promotion||"")===u})[0];
+ if(!m){msg("Stockfish returned an invalid move. The board was not changed.");return}
+ S.bot={i:S.line.length,before:fen,chosen:u,best:u,loss:null,why:"Stockfish best move",d:job.depth||e.d,vf:false,single:true};
  play(m.from,m.to,m.promotion);
 }
 function kOf(l){return l<=10?0:l<=30?1:l<=80?2:l<=150?3:l<=300?4:5}
