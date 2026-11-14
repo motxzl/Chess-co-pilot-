@@ -332,13 +332,13 @@ function render(){
  $("pl").textContent=me==="both"?"Eval is from White’s side: + favors White.":"Eval is from your side ("+(me==="w"?"White":"Black")+"): + favors you.";
  if(b){w=100/(1+Math.exp(-cl(num(b.sc))*p/200));$("ef").style.width=w+"%";$("et").textContent=show(b.sc,p)}else{$("ef").style.width="50%";$("et").textContent="—"}
  if(o)h+="<div><b>"+o+"</b></div>";
- if(!b){h+=G.moves().length===0?"":"<div class='mute'>"+(S.rev?"Review running. Live analysis resumes after.":"Analyzing…")+"</div>"}
+ if(!b){h+=G.moves().length===0?"":"<div class='mute'>"+(cur.unavailable?"Analysis unavailable — Stockfish could not be started.":"Analysis pending…")+"</div>"}
  else{
   L=pvSan(cur.fen,b.pv,10);
   if(L.length){
    mv=L[0];
    h+="<div class='sm mute'>"+(me==="both"?(t==="w"?"White":"Black")+"’s best move":(t===me?"Best move for you":"Opponent’s best move (their threat)"))+"</div><div class='big'>"+mv.san+"</div>";
-   h+="<div>"+mv.from+" → "+mv.to+" · eval "+show(b.sc,p)+" · depth "+cur.depth+" · "+(cur.eng==="sf"?(E.name||"Stockfish"):"built-in search (shallow)")+(cur.done?"":" · searching…")+"</div>";
+   h+="<div>"+mv.from+" → "+mv.to+" · eval "+show(b.sc,p)+" · depth "+cur.depth+" · "+(cur.eng==="sf"?(E.name||"Stockfish"):"Stockfish unavailable")+(cur.done?"":" · searching…")+"</div>";
    pe=S.ply>0?S.evals[S.fens[S.ply-1]]:null;
    if(pe){dv=(cl(num(b.sc))-cl(num(pe.sc)))*p/100;h+="<div class='sm mute'>Change since previous position: "+(dv>0?"+":"")+dv.toFixed(2)+"</div>"}
    h+="<div class='sm' style='margin-top:4px'>Line: "+L.map(function(m){return m.san}).join(" ")+"</div>";
