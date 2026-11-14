@@ -83,7 +83,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 .pw{color:#fffdf5;text-shadow:0 1px 2px #26332d,0 0 2px #26332d}.pb{color:#18201b;text-shadow:0 1px 1px rgba(255,255,255,.25)}
 .sq em{font-size:clamp(8px,1.3vw,11px);color:#25332b}#ar{z-index:3}
 #hs{display:flex;flex-wrap:wrap;gap:5px}.ch{background:#19221d;border:1px solid transparent;border-radius:7px;padding:7px 9px;margin:0;min-height:34px;font-variant-numeric:tabular-nums}
-.ch.on{background:#c7a66a;color:#17150f}.ch.x3{color:#e2bd73}.ch.x4{color:#e69a73}.ch.x5{color:#ed7770}
+.ch.on{background:#c7a66a;color:#17150f}.ch.x3{color:#e2bd73}.ch.x4{color:#e69a73}.ch.x5{color:#e6a16d}.ch.x6{color:#ed7770}
 #rec .big{font-size:34px;letter-spacing:-.04em;color:#e4c88f}.note{border-left-width:3px;padding:9px 11px;background:#171f1b;border-radius:0 8px 8px 0}
 .dialog-backdrop{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.dialog-backdrop.open{display:flex}
 .dialog{width:min(440px,100%);position:relative;padding:28px;border:1px solid #39483e;border-radius:18px;background:#111815;box-shadow:0 30px 90px rgba(0,0,0,.55)}
@@ -150,14 +150,14 @@ if(typeof Chess==="undefined"){$("st").textContent="Chess library failed to load
 var SF="https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js";
 var ST="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 var V={p:1,n:3,b:3,r:5,q:9,k:100},GL={k:"\u265A",q:"\u265B",r:"\u265C",b:"\u265D",n:"\u265E",p:"\u265F"},NM={p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen",k:"king"};
-var CN=["Best","Excellent","Good","Inaccuracy","Mistake","Blunder"],CM=["★","","","?!","?","??"];
+var CN=["Brilliant","Best","Excellent","Good","Inaccuracy","Mistake","Blunder"],CM=["!!","★","","","?!","?","??"];
 var S={start:ST,line:[],ply:0,side:"w",flip:false,sel:null,pro:null,fens:[ST],evals:{},wanted:0,rev:false,flight:[]};
 var G=new Chess(),cur={fen:"",lines:{},depth:0,done:false,eng:""},dl=0,nodes=0;
 function sq(r,c){return "abcdefgh".charAt(c)+(8-r)}
 function msg(t){$("ms").textContent=t||""}
 function pov(){return S.side==="b"?-1:1}
 function neg(s){return s.mate!==undefined?{mate:-s.mate}:{cp:-s.cp}}
-function num(s){return s.mate!==undefined?(s.mate>0?1:-1)*(10000-Math.abs(s.mate)):s.cp}
+function num(s){return s.mate!==undefined?(s.mate>0?1:-1)*(1000-Math.min(100,Math.abs(s.mate))*0.1):s.cp}
 function cl(x){return Math.max(-1000,Math.min(1000,x))}
 function show(s,p){if(s.mate!==undefined){var m=s.mate*p;return(m>0?"M":"-M")+Math.abs(m)}var v=s.cp*p/100;return(v>0?"+":"")+v.toFixed(2)}
 function pvSan(fen,pv,n){var g=new Chess(fen),o=[],i,m;for(i=0;i<pv.length&&i<n;i++){m=g.move({from:pv[i].slice(0,2),to:pv[i].slice(2,4),promotion:pv[i].slice(4,5)||undefined});if(!m)break;o.push(m)}return o}
@@ -363,18 +363,33 @@ function render(){
  $("rec").innerHTML=h;$("alt").style.display=a?"block":"none";$("alt").innerHTML="<b>Alternatives</b>"+a;$("nt").innerHTML=n;arrows();renderBot();
 }
 function cls(i){
- var a=S.evals[S.fens[i]],b=S.evals[S.fens[i+1]],m=S.line[i],sg,loss,u,k;
- if(!a||!b||a.d<6||b.d<6)return null;
- sg=S.fens[i].split(" ")[1]==="w"?1:-1;loss=sg*(cl(num(a.sc))-cl(num(b.sc)));u=m.from+m.to+(m.promotion||"");
- k=u===a.best||loss<=10?0:loss<=30?1:loss<=80?2:loss<=150?3:loss<=300?4:5;
- return{k:k,loss:loss};
+ var a=S.evals[S.fens[i]],b=S.evals[S.fens[i+1]],m=S.line[i],sg,loss,u,k,before,piece,after,captures;
+ if(!a||!b||a.d<8||b.d<8)return null;
+ sg=S.fens[i].split(" ")[1]==="w"?1:-1;
+ loss=Math.max(0,sg*(cl(num(a.sc))-cl(num(b.sc))));
+ u=m.from+m.to+(m.promotion||"");
+ if(u===a.best)k=1;
+ else if(loss<=10)k=2;
+ else if(loss<=30)k=3;
+ else if(loss<=80)k=4;
+ else if(loss<=150)k=5;
+ else k=6;
+ if(k===1){
+  before=new Chess(S.fens[i]);piece=before.get(m.from);
+  if(piece&&piece.type!=="p"&&V[piece.type]>=3&&loss<=10){
+   after=new Chess(S.fens[i+1]);
+   captures=after.moves({verbose:true}).filter(function(x){return x.to===m.to&&x.captured});
+   if(captures.length)k=0;
+  }
+ }
+ return{k:k,loss:loss,best:a.best,brilliant:k===0};
 }
 function hist(){
  var h="",i,m,t,c,s=[],a,bs;
  for(i=0;i<S.line.length;i++){
   m=S.line[i];t=S.fens[i].split(" ");c=cls(i);
-  h+="<button class='ch"+(i+1===S.ply?" on":"")+(c&&c.k>=3?" x"+c.k:"")+"' data-i='"+i+"' title='"+(c?CN[c.k]:"")+"'>"+(t[1]==="w"?t[5]+". ":(i===0?t[5]+"… ":""))+m.san+(c?CM[c.k]:"")+"</button>";
-  if(c&&c.k>=4){a=S.evals[S.fens[i]];bs=pvSan(S.fens[i],[a.best],1)[0];s.push((t[1]==="w"?t[5]+". ":t[5]+"… ")+m.san+" "+CN[c.k]+" (lost about "+(Math.min(c.loss,1000)/100).toFixed(1)+"), engine preferred "+(bs?bs.san:"?"))}
+  h+="<button class='ch"+(i+1===S.ply?" on":"")+(c&&c.k>=4?" x"+c.k:"")+"' data-i='"+i+"' title='"+(c?CN[c.k]:"")+"'>"+(t[1]==="w"?t[5]+". ":(i===0?t[5]+"… ":""))+m.san+(c?CM[c.k]:"")+"</button>";
+  if(c&&c.k>=5){a=S.evals[S.fens[i]];bs=pvSan(S.fens[i],[a.best],1)[0];s.push((t[1]==="w"?t[5]+". ":t[5]+"… ")+m.san+" "+CN[c.k]+" (lost about "+(Math.min(c.loss,1000)/100).toFixed(1)+"), engine preferred "+(bs?bs.san:"?"))}
  }
  $("hs").innerHTML=h||"<span class='mute sm'>No moves yet.</span>";
  $("rs").innerHTML=s.length?"<b>Critical moments</b><br>"+s.slice(0,8).join("<br>"):"";
