@@ -263,14 +263,7 @@ function play(f,t,p){
  S.line=S.line.slice(0,S.ply);S.line.push({from:r.from,to:r.to,promotion:r.promotion,san:r.san});S.ply=S.line.length;msg("");refresh();return true;
 }
 function keep(fen,L){var b=L[1],o;if(!b)return;o=S.evals[fen];if(!o||b.d>=o.d)S.evals[fen]={sc:b.sc,d:b.d,best:b.pv[0]}}
-function fallback(fen,id){
- setTimeout(function(){
-  if(id!==S.wanted)return;
-  var ms=G.moves({verbose:true}),r=think(ms),s=r.score,t=G.turn(),c2;
-  c2=s>90000?{mate:Math.round((99001-s)/2)}:s<-90000?{mate:-Math.round((99000+s)/2)}:{cp:s};if(t==="b")c2=neg(c2);
-  cur.lines={1:{sc:c2,d:r.d,pv:[r.mv.from+r.mv.to+(r.mv.promotion||"")]}};cur.depth=r.d;cur.eng="bi";cur.done=true;keep(fen,cur.lines);render();
- },30);
-}
+function fallback(fen,id){if(id!==S.wanted)return;cur.unavailable=true;cur.done=true;render();}
 function analyze(){
  var fen=G.fen(),id=++S.wanted,job;
  cur={fen:fen,lines:{},depth:0,done:false,eng:""};
