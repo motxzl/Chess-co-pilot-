@@ -1,0 +1,1 @@
+import {redirect} from "next/navigation"; import {getSessionRole} from "@/lib/session"; export const dynamic="force-dynamic"; export default async function Play(){if(!await getSessionRole())redirect("/");return <main style={{height:"100dvh"}}><iframe title="Chess Co-Pilot" src="/chess-engine" style={{width:"100%",height:"100%",border:0,display:"block"}}/></main>;}
