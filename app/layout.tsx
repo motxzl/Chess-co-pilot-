@@ -1,0 +1,1 @@
+import type {Metadata} from "next"; import "./globals.css"; export const metadata:Metadata={title:"Chess Co-Pilot | Private Access",description:"Private access to Chess Co-Pilot"}; export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>;}
