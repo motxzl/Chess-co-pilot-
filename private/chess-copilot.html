@@ -40,7 +40,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .sq u{position:absolute;width:26%;height:26%;border-radius:50%;background:rgba(10,20,15,.4);pointer-events:none}
 .sq em{position:absolute;font-style:normal;font-size:10px;line-height:1;font-weight:700;opacity:.7;pointer-events:none;color:#0c1812}
 .rk{top:3px;left:3px}.fl{bottom:3px;right:3px}
-#ar{position:absolute;left:0;right:0;top:26px;aspect-ratio:1;width:100%;pointer-events:none}
+#ar{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+.board-stage{position:relative;width:100%;max-width:720px;aspect-ratio:1;margin:0 auto;min-width:0}
+.board-stage #bd{width:100%;height:100%;max-width:none;grid-template-rows:repeat(8,minmax(0,1fr))}
+.board-stage .sq{min-width:0;min-height:0;aspect-ratio:auto}
+.engine-settings{display:grid;gap:12px;margin-top:12px}
+.engine-settings .sl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(90px,2fr) 42px;gap:10px;align-items:center}
+.engine-settings .sl label{flex:auto}
+.engine-settings select{max-width:100%;min-width:0}
+#engineSettingsStatus{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#0e1511}
 #pm{display:flex;gap:6px;margin-top:6px}
 .ch{min-height:36px;padding:0 8px;font-weight:500;margin:2px 2px 2px 0}
 .ch.x3{color:var(--warn)}.ch.x4{color:#ff9a4d}.ch.x5{color:var(--bad)}
@@ -94,7 +102,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 .bot-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:#26372d;color:#d2b477;font-size:22px}
 .engine-tag{margin-left:auto;font-size:9px;letter-spacing:.12em;color:#c7a66a;font-weight:800}
 .start-game{width:100%;margin-top:18px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;min-height:50px}
-.dialog-foot{line-height:1.5;margin:12px 0 0}.advanced-panel{margin-top:12px}.advanced-panel #oc{display:none}
+.dialog-foot{line-height:1.5;margin:12px 0 0}.advanced-panel{margin-top:12px}.advanced-panel #oc{display:block}
 @media(max-width:860px){.grid{grid-template-columns:1fr}.wrap{width:100%;padding:14px}.bw{max-width:min(100%,min(88vw,620px))}.bd{--sz:clamp(30px,10vw,66px)}}
 @media(max-width:520px){.top{align-items:flex-start}.top-actions{flex-direction:column;align-items:flex-end;gap:8px}.top-actions #openBot{min-height:40px;padding:0 10px;font-size:12px}.wrap{padding:12px}.grid{gap:12px}.card{padding:13px}.bd{--sz:clamp(29px,10.8vw,48px)}.dialog{padding:23px}}
 </style>
@@ -107,8 +115,7 @@ button.pri,button.on{background:#c7a66a;border-color:#c7a66a;color:#17150f;box-s
 <div>
 <div class="bw">
 <div id="eb"><i id="ef"></i><span id="et">—</span></div>
-<div id="bd" class="bd"></div>
-<svg id="ar" viewBox="0 0 8 8"></svg>
+<div class="board-stage"><div id="bd" class="bd"></div><svg id="ar" viewBox="0 0 8 8" preserveAspectRatio="none"></svg></div>
 </div>
 <div id="pm"></div>
 <div class="sm mute" id="pl" style="margin-top:4px"></div>
@@ -198,7 +205,7 @@ E.msg=function(l){
  if(l.indexOf("id name")===0)E.name=l.slice(8);
  else if(l.indexOf("option name")===0){j=l.match(/^option name (.+?) type/);if(j)E.opts[j[1]]=1}
  else if(l==="uciok")E.send("isready");
- else if(l==="readyok"){if(!E.ok){E.ok=true;setSt("Engine: "+(E.name||"Stockfish"),true);oppInfo()}E.start()}
+ else if(l==="readyok"){if(!E.ok){E.ok=true;setSt("Engine: "+(E.name||"Stockfish"),true)}updateEngineSettingsStatus();E.start()}
  else if(l.indexOf("info")===0&&E.run)E.info(l);
  else if(l.indexOf("bestmove")===0){j=E.run;E.run=null;if(j){j.bestmove=l.split(/\s+/)[1]||"";j.res(j)}E.start()}
 };
@@ -213,7 +220,7 @@ E.cancel=function(){if(E.next){E.next.dead=true;E.next.res(E.next);E.next=null}i
 E.start=function(){
  var j=E.next;if(E.run||!j||!E.ok)return;
  E.next=null;E.run=j;j.lines={};j.depth=0;
- E.send("setoption name MultiPV value "+j.mpv);if(E.opts["Skill Level"]&&j.skill!==undefined)E.send("setoption name Skill Level value "+j.skill);E.send("position fen "+j.fen);E.send("go depth "+j.dmax+" movetime "+j.mt);
+ E.send("setoption name MultiPV value "+j.mpv);if(E.opts["Skill Level"])E.send("setoption name Skill Level value "+(j.skill!==undefined?j.skill:20));E.send("position fen "+j.fen);E.send("go depth "+j.dmax+" movetime "+j.mt);
 };
 E.info=function(l){
  var j=E.run,d,s,p,m,k,x,c2;
@@ -254,7 +261,7 @@ function analyze(){
   onInfo:function(L,d){if(id!==S.wanted)return;cur.lines=L;cur.depth=d;cur.eng="sf";keep(fen,L);render()},
   fb:function(){fallback(fen,id)}};
  render();
- E.go(job).then(function(j){if(id===S.wanted&&!j.dead&&!j.fbd){cur.done=true;render()}});
+ E.go(job).then(function(j){if(id===S.wanted&&!j.dead&&!j.fbd){cur.lines=j.lines||cur.lines;cur.depth=j.depth||cur.depth;cur.eng="sf";cur.done=true;render()}});
 }
 
 /* rendering */
@@ -299,6 +306,8 @@ function xy(s){var f=s.charCodeAt(0)-97,r=+s.charAt(1);return[(S.flip?7-f:f)+.5,
 var lastArrowKey="";
 function arrows(){
  var b=cur.lines[1],h="",a,z,dx,dy,L,x,y,hx,hy,col,key="";
+ /* Never animate between iterative-deepening candidates. Publish only the completed best line. */
+ if(!cur.done){if(lastArrowKey!==""){lastArrowKey="";$("ar").innerHTML=""}return}
  if($("arw").checked&&b&&cur.fen===G.fen()&&b.pv&&b.pv[0]&&b.pv[0].length>=4){
   a=xy(b.pv[0].slice(0,2));z=xy(b.pv[0].slice(2,4));dx=z[0]-a[0];dy=z[1]-a[1];L=Math.hypot(dx,dy);
   if(L>0){x=dx/L;y=dy/L;hx=z[0]-x*.38;hy=z[1]-y*.38;col=(S.side==="both"||G.turn()===S.side)?"#4fbf7f":"#e0a040";key=cur.fen+"|"+b.pv[0]+"|"+S.flip+"|"+col;
@@ -442,106 +451,64 @@ $("rv").onclick=function(){
   E.go(job).then(function(j){if(j.lines&&j.lines[1])keep(f,j.lines);i++;hist();next()});
  })();
 };
-/* ---- opponent bot: separate config from analysis ---- */
-/*PICK*/
-var BANDS={tiny:[10,40],minor:[40,100],noticeable:[100,250],major:[250,800]};
-function pick(cs,c,R){
- var n=cs.length,sg=(1-c.P/100)*70,i,t=cs.slice().sort(function(a,b){return b.cp-a.cp}),tb=t[0],gap=n>1?t[0].cp-t[1].cp:0,
- q=cs.map(function(m){return{u:m.u,cp:m.cp,z:m.cp+(m.f||sg<=0?0:(R()+R()+R()-1.5)*2*sg)}}),
- base=q.reduce(function(a,b){return b.z>a.z?b:a}),hard,p,cx,bnd,el,w,tot,r;
- if(n<2)return{u:tb.u,b:tb.u,loss:0,why:"only"};
- p=c.F/100;cx=Math.min(1,gap/300)*.5+Math.min(1,n/6)*.5;
- if(c.hum)p=Math.min(1,p*(.6+.8*cx));
- hard=gap>=150&&R()<(1-c.T/100)*Math.min(1,gap/500);
- if(hard||R()<p){
-  r=R();bnd=BANDS[c.sev=="mixed"?["tiny","minor","noticeable","major"][r<.4?0:r<.7?1:r<.9?2:3]:c.sev];
-  el=cs.filter(function(m){return m.u!==tb.u&&tb.cp-m.cp>=bnd[0]&&tb.cp-m.cp<=bnd[1]});
-  if(!el.length)el=cs.filter(function(m){return m.u!==tb.u&&tb.cp-m.cp>=bnd[0]*.5&&tb.cp-m.cp<=bnd[1]*1.4});
-  if(el.length){w=el.map(function(m){return 1/(1+(tb.cp-m.cp)/40)});tot=w.reduce(function(a,b){return a+b},0);r=R()*tot;for(i=0;i<el.length-1;i++){r-=w[i];if(r<=0)break}
-   return{u:el[i].u,b:tb.u,loss:tb.cp-el[i].cp,why:hard?"missed tactic":"mistake roll"}}
- }
- return{u:base.u,b:tb.u,loss:tb.cp-cs.filter(function(m){return m.u===base.u})[0].cp,why:base.u===tb.u?"best":"positional misjudgment"};
-}
-/*ENDPICK*/
-var PRE={Beginner:[10,60,"mixed",15,20,"variable"],Casual:[25,40,"noticeable",35,40,"mostly"],Intermediate:[45,25,"minor",55,60,"mostly"],Advanced:[65,14,"minor",75,75,"mostly"],Expert:[80,7,"tiny",88,88,"mostly"],Master:[92,3,"tiny",96,95,"consistent"],Grandmaster:[98,1,"tiny",100,100,"consistent"],"Engine Maximum":[100,0,"tiny",100,100,"consistent"]};
-function D(n,S2,F,sev,T,P,cons,hum){return{n:n,s:{S:S2,F:F,sev:sev,T:T,P:P,dep:"auto",cons:cons,hum:hum,sk:false}}}
-function defs(){return[D("Training Partner",45,20,"minor",60,65,"mostly",true),D("Casual Friend",25,40,"noticeable",35,40,"variable",true),D("Tactical Beginner",30,35,"major",20,55,"variable",true),D("Competitive Player",75,10,"minor",80,80,"mostly",true),D("Near-Perfect Engine",100,0,"tiny",100,100,"consistent",false),D("Custom Profile",45,20,"minor",60,65,"mostly",true)]}
-var PF={list:defs(),sel:0};
-function pair(id,l,mn,mx){return"<div class='sl'><label for='n_"+id+"'>"+l+"</label><input type='range' id='r_"+id+"' min='"+mn+"' max='"+mx+"' aria-label='"+l+"'><input type='number' id='n_"+id+"' min='"+mn+"' max='"+mx+"' style='width:64px'></div>"}
-function op(a){return a.map(function(o){return"<option value='"+o[0]+"'>"+o[1]+"</option>"}).join("")}
-$("oc").innerHTML="<label><input type='checkbox' id='bo'> Bot plays the other side (choose White or Black in setup first)</label>"+
-"<div class='row'><label>Preset <select id='ps'><option>Custom</option>"+Object.keys(PRE).map(function(k){return"<option>"+k+"</option>"}).join("")+"</select></label></div>"+
-pair("S","Strength 1–100",1,100)+pair("F","Mistake frequency %",0,100)+pair("T","Tactical awareness",0,100)+pair("P","Positional accuracy",0,100)+
-"<div class='row'><label>Severity <select id='sv'>"+op([["tiny","Tiny inaccuracies"],["minor","Minor mistakes"],["noticeable","Noticeable mistakes"],["major","Major blunders"],["mixed","Unpredictable"]])+"</select></label>"+
-"<label>Depth <select id='bd2'>"+op([["auto","Auto from strength"],[2,2],[4,4],[6,6],[8,8],[12,12],[16,16],[20,20],[24,24]])+"</select></label>"+
-"<label>Consistency <select id='cs'>"+op([["consistent","Consistent"],["mostly","Mostly consistent"],["variable","Variable, human-like"]])+"</select></label></div>"+
-"<div class='row'><label><input type='checkbox' id='hu'> Human-like mode</label><label id='skw'><input type='checkbox' id='sk'> Also set engine Skill Level</label><label><input type='checkbox' id='bs' checked> Show bot move analysis</label></div>"+
-"<div class='sm mute' id='oi'></div>"+
-"<div class='row'><label>Profile <select id='pf'></select></label><input id='pn' style='flex:1;min-width:0' aria-label='Profile name'></div><div class='row'><button id='pS'>Save</button><button id='pR'>Rename</button><button id='pD'>Duplicate</button><button id='pX'>Delete</button><button id='pZ'>Defaults</button></div>"+
-"<div class='sm mute'>Presets are behavior settings, not calibrated Elo ratings. Tactical awareness and positional accuracy act on the engine’s candidate scores (overlooked wins, noisy quiet-move judgments), not on separate pin or fork detectors.</div>";
-function nv(id){var x=+$("n_"+id).value;return Math.max(+$("n_"+id).min,Math.min(+$("n_"+id).max,isNaN(x)?0:x))}
-function getS(){return{S:nv("S"),F:nv("F"),T:nv("T"),P:nv("P"),sev:$("sv").value,dep:$("bd2").value,cons:$("cs").value,hum:$("hu").checked,sk:$("sk").checked}}
-function setS(s){["S","F","T","P"].forEach(function(k){$("n_"+k).value=$("r_"+k).value=s[k]});$("sv").value=s.sev;$("bd2").value=s.dep;$("cs").value=s.cons;$("hu").checked=!!s.hum;$("sk").checked=!!s.sk}
-function ctl(){var c=getS();c.on=$("bo").checked;return c}
-function eff(c){var d=c.dep==="auto"?(c.S>=100?20:c.S>=80?16:c.S>=55?12:c.S>=30?8:4):+c.dep;return{d:d,mt:c.S>=100?1500:c.S>=80?1000:c.S>=55?650:c.S>=30?400:250,pool:1,skill:(c.sk&&E.opts["Skill Level"])?Math.max(0,Math.min(20,Math.round(c.S/5))):undefined}}
-function oppInfo(){
- var c=ctl(),e=eff(c),sk=E.opts["Skill Level"];
- $("skw").style.display=sk?"":"none";
- $("oi").innerHTML="<b>Opponent config:</b> depth "+e.d+", "+e.mt+" ms, "+e.pool+" candidate lines, Skill Level "+(e.skill!==undefined?e.skill:sk?"not applied":E.ok?"not advertised":"unknown yet")+". <b>Analysis config (unchanged):</b> depth cap "+$("dp").value+", "+$("tm").value+"s, "+$("ml").value+" lines, full strength."+(c.on&&S.side==="both"?" The bot is idle until you pick White or Black.":"");
-}
+/* ---- Stockfish bot settings: all controls map to real UCI/search settings ---- */
 function botTurn(){return $("bo").checked&&S.side!=="both"&&G.turn()!==S.side&&S.ply===S.line.length&&!S.rev&&G.moves().length>0}
-function rng(sd){return function(){sd|=0;sd=sd+0x6D2B79F5|0;var t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function hash(s){var h=2166136261,i;for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function botMove(id){
- var c=ctl(),e=eff(c),fen=G.fen(),t=G.turn(),job;
- if(!E.ok){msg("Stockfish is unavailable. A bot game cannot start right now.");return}
- job={fen:fen,turn:t,dmax:e.d,mt:e.mt,mpv:1,skill:e.skill};
- E.go(job).then(function(j){if(id!==S.wanted||j.dead)return;if(j.fbd||!j.bestmove||j.bestmove==="(none)"){msg("Stockfish did not return a legal move.");return}fin(fen,t,j,e,c)});
+function botSettings(){return{skill:+$("botSkill").value,depth:+$("botDepth").value,mt:+$("botTime").value*1000}}
+function updateEngineSettingsStatus(){
+ var supported=!!E.opts["Skill Level"],el=$("engineSettingsStatus");
+ if(!el)return;
+ el.textContent=E.ok?(supported?"Stockfish Skill Level is supported. Strength, search depth and thinking time are applied to bot moves.":"This Stockfish build does not advertise Skill Level; depth and thinking time still apply."):"Waiting for Stockfish. Settings will be applied when the engine is ready.";
 }
-function fin(fen,t,job,e,c){
- if(G.fen()!==fen)return;
- var u=job.bestmove,ms=G.moves({verbose:true}),m=ms.filter(function(x){return x.from+x.to+(x.promotion||"")===u})[0];
- if(!m){msg("Stockfish returned an invalid move. The board was not changed.");return}
- S.bot={i:S.line.length,before:fen,chosen:u,best:u,loss:null,why:"Stockfish best move",d:job.depth||e.d,vf:false,single:true};
- play(m.from,m.to,m.promotion);
-}
-function kOf(l){return l<=10?0:l<=30?1:l<=80?2:l<=150?3:l<=300?4:5}
 function renderBot(){
  var b=S.bot,el=$("bp"),ch;
  if(!b||!$("bs").checked||S.fens[b.i]!==b.before){el.style.display="none";return}
  ch=pvSan(b.before,[b.chosen],1)[0];
- el.innerHTML="<b>Bot move</b><div>Stockfish played <b>"+(ch?ch.san:b.chosen)+"</b> using the selected strength settings.</div><div class='sm mute'>Move-quality ratings are calculated separately by game review; no estimated rating is invented here.</div>";
+ el.innerHTML="<b>Bot move</b><div>Stockfish played <b>"+(ch?ch.san:b.chosen)+"</b> at Skill Level "+b.skill+"/20, depth "+b.d+".</div><div class='sm mute'>Move-quality ratings are calculated separately by game review; no estimated rating is invented here.</div>";
  el.style.display="block";
+}
+function botMove(id){
+ var c=botSettings(),fen=G.fen(),t=G.turn();
+ if(!E.ok){msg("Stockfish is unavailable. A bot game cannot start right now.");return}
+ E.go({fen:fen,turn:t,dmax:c.depth,mt:c.mt,mpv:1,skill:c.skill}).then(function(j){
+  if(id!==S.wanted||j.dead)return;
+  if(j.fbd||!j.bestmove||j.bestmove==="(none)"){msg("Stockfish did not return a legal move.");return}
+  if(j.lines){cur.lines=j.lines;cur.depth=j.depth;cur.done=true;cur.eng="sf";render()}
+  fin(fen,t,j,c);
+ });
+}
+function fin(fen,t,job,c){
+ if(G.fen()!==fen)return;
+ var u=job.bestmove,ms=G.moves({verbose:true}),m=ms.filter(function(x){return x.from+x.to+(x.promotion||"")===u})[0];
+ if(!m){msg("Stockfish returned an invalid move. The board was not changed.");return}
+ S.bot={i:S.line.length,before:fen,chosen:u,best:u,loss:null,why:"Stockfish best move",d:job.depth||c.depth,skill:c.skill,vf:false,single:true};
+ play(m.from,m.to,m.promotion);
 }
 $("bp").onclick=function(e){
  var b=S.bot;if(e.target.id!=="vf"||!b||S.rev)return;
  if(!E.ok){msg("Verification needs Stockfish, which isn’t running.");return}
  S.rev=true;msg("Verifying with the analysis engine…");
  E.go({fen:b.before,turn:b.before.split(" ")[1],dmax:+$("dp").value,mt:+$("tm").value*1000,mpv:1}).then(function(j){
-  if(j.lines&&j.lines[1]){keep(b.before,j.lines);b.vf=true}
+  if(j.lines&&j.lines[1])keep(b.before,j.lines);
   S.rev=false;msg("");analyze();
  });
 };
-function pfSave(){try{localStorage.setItem("cc.pf1",JSON.stringify(PF))}catch(e){}}
-function pfDraw(){$("pf").innerHTML=PF.list.map(function(p,i){return"<option value='"+i+"'"+(i===PF.sel?" selected":"")+">"+p.n.replace(/</g,"&lt;")+"</option>"}).join("");$("pn").value=PF.list[PF.sel].n}
-function pfUse(){var s=JSON.parse(JSON.stringify(PF.list[PF.sel].s));setS(s);$("ps").value="Custom";pfDraw();oppInfo();if(botTurn())analyze()}
-try{var pj=JSON.parse(localStorage.getItem("cc.pf1"));if(pj&&pj.list&&pj.list.length&&pj.list[pj.sel])PF=pj}catch(e){}
-["S","F","T","P"].forEach(function(k){$("r_"+k).oninput=function(){$("n_"+k).value=this.value};$("n_"+k).oninput=function(){$("r_"+k).value=nv(k)}});
-Array.prototype.forEach.call(document.querySelectorAll("#oc input,#oc select"),function(x){if(/^(ps|pf|pn)$/.test(x.id))return;x.addEventListener("input",function(){if(x.id!=="bo"&&x.id!=="bs")$("ps").value="Custom";oppInfo();if(x.id==="bs")renderBot();else if(botTurn()||x.id==="bo")analyze()});});
-$("ps").onchange=function(){var p=PRE[this.value];if(!p)return;setS({S:p[0],F:p[1],sev:p[2],T:p[3],P:p[4],dep:"auto",cons:p[5],hum:true,sk:$("sk").checked});oppInfo();if(botTurn())analyze()};
-$("pf").onchange=function(){PF.sel=+this.value;pfSave();pfUse()};
-$("pS").onclick=function(){PF.list[PF.sel].s=getS();pfSave();msg("Saved to “"+PF.list[PF.sel].n+"”.")};
-$("pR").onclick=function(){var n=$("pn").value.trim();if(n){PF.list[PF.sel].n=n;pfSave();pfDraw()}};
-$("pD").onclick=function(){PF.list.splice(PF.sel+1,0,{n:PF.list[PF.sel].n+" copy",s:getS()});PF.sel++;pfSave();pfDraw()};
-$("pX").onclick=function(){if(PF.list.length<2){msg("Keep at least one profile.");return}PF.list.splice(PF.sel,1);PF.sel=0;pfSave();pfUse()};
-$("pZ").onclick=function(){PF={list:defs(),sel:0};pfSave();pfUse()};
+$("oc").innerHTML="<div class='engine-settings'>"+
+ "<label><input type='checkbox' id='bo'> Bot plays the other side</label>"+
+ "<div class='sl'><label for='botSkill'>Stockfish strength</label><input id='botSkill' type='range' min='0' max='20' step='1' value='11'><output id='botSkillValue'>11</output></div>"+
+ "<div class='row'><label>Search depth <select id='botDepth'><option>4</option><option>6</option><option>8</option><option selected>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>24</option></select></label>"+
+ "<label>Think time <select id='botTime'><option value='0.25'>0.25s</option><option value='0.5'>0.5s</option><option value='0.75'>0.75s</option><option value='1' selected>1s</option><option value='1.5'>1.5s</option><option value='2'>2s</option><option value='3'>3s</option><option value='5'>5s</option></select></label></div>"+
+ "<label><input type='checkbox' id='bs' checked> Show bot move analysis</label>"+
+ "<div id='engineSettingsStatus' class='sm mute'>Waiting for Stockfish…</div>"+
+ "<div class='sm mute'>Strength uses Stockfish's UCI Skill Level when supported. Depth and thinking time are applied directly to the engine search. Analysis settings above remain separate.</div>"+
+ "</div>";
+$("botSkill").addEventListener("input",function(){$("botSkillValue").textContent=this.value});
 /* Play-a-Bot setup */
 function openBotDialog(){var d=$("botDialog");d.classList.add("open");d.setAttribute("aria-hidden","false");$("botColor").focus()}
 function closeBotDialog(){var d=$("botDialog");d.classList.remove("open");d.setAttribute("aria-hidden","true")}
 $("openBot").onclick=openBotDialog;$("closeBot").onclick=closeBotDialog;
 $("botDialog").addEventListener("click",function(e){if(e.target===$("botDialog"))closeBotDialog()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")closeBotDialog()});
-var BOT_LEVELS={beginner:{label:"Beginner",strength:10,depth:4,description:"A gentle opponent for learning the basics."},easy:{label:"Easy",strength:30,depth:8,description:"A relaxed game with room to practise."},intermediate:{label:"Intermediate",strength:55,depth:12,description:"A balanced training opponent."},advanced:{label:"Advanced",strength:80,depth:16,description:"A demanding opponent that finds deeper tactics."},expert:{label:"Expert",strength:100,depth:20,description:"Full-strength engine play within the configured search budget."}};
+var BOT_LEVELS={beginner:{label:"Beginner",skill:2,depth:5,time:0.5,description:"A gentle opponent for learning the basics."},easy:{label:"Easy",skill:5,depth:8,time:0.75,description:"A relaxed game with room to practise."},intermediate:{label:"Intermediate",skill:10,depth:12,time:1,description:"A balanced training opponent."},advanced:{label:"Advanced",skill:16,depth:16,time:1.5,description:"A demanding opponent that searches deeper."},expert:{label:"Expert",skill:20,depth:20,time:2,description:"Full-strength Stockfish skill with a deeper search."}};
 $("botDifficulty").onchange=function(){var x=BOT_LEVELS[this.value];$("botLevelName").textContent=x.label;$("botLevelDescription").textContent=x.description};
 $("startBot").onclick=function(){
  if(!E.ok){msg("Stockfish is still loading or unavailable. Wait for the engine status before starting a bot game.");return}
@@ -549,12 +516,12 @@ $("startBot").onclick=function(){
  if(side==="random")side=Math.random()<.5?"w":"b";
  S.start=ST;S.line=[];S.ply=0;S.evals={};S.bot=null;S.side=side;S.flip=side==="b";S.rev=false;
  $("bo").checked=true;$("bs").checked=true;
- setS({S:level.strength,F:0,T:100,P:100,sev:"tiny",dep:String(level.depth),cons:"consistent",hum:false,sk:true});
+ $("botSkill").value=level.skill;$("botSkillValue").textContent=String(level.skill);$("botDepth").value=String(level.depth);$("botTime").value=String(level.time);updateEngineSettingsStatus();
  Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.className=b.getAttribute("data-side")===side?"on":""});
  $("ps").value="Custom";oppInfo();closeBotDialog();msg("New game started. You are playing "+(side==="w"?"White":"Black")+".");refresh();
 };
 
-setS(PF.list[PF.sel].s);pfDraw();oppInfo();
+$("botSkillValue").textContent=$("botSkill").value;updateEngineSettingsStatus();
 E.init();refresh();
 })();
 </script>
