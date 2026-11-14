@@ -36,7 +36,7 @@ try {
 
   await page.locator(".advanced-panel summary").click();
   assert.equal(await page.locator("#oc").isVisible(), true, "advanced engine settings must be visible");
-  await page.locator("#botSkill").fill("7");
+  await page.locator("#botSkill").evaluate((el) => { el.value = "7"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   assert.equal(await page.locator("#botSkillValue").textContent(), "7", "strength slider must update its displayed value");
 
   await page.locator("#openBot").click();
