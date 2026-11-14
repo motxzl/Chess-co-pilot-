@@ -1,0 +1,1 @@
+import {redirect} from "next/navigation"; import {getSessionRole} from "@/lib/session"; import Dashboard from "./ui"; export const dynamic="force-dynamic"; export default async function Admin(){if(await getSessionRole()!=="admin")redirect("/admin/login");return <Dashboard/>;}
