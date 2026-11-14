@@ -1,13 +1,11 @@
 import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../private/chess-copilot.html", import.meta.url), "utf8");
-const inlineScripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
-  .map((match) => match[1].trim())
-  .filter(Boolean);
+const start = html.indexOf("<script>");
+const end = html.indexOf("</script>", start);
 
-if (inlineScripts.length !== 1) {
-  throw new Error(`Expected exactly one inline engine script, found ${inlineScripts.length}`);
-}
+if (start < 0 || end < 0) throw new Error("Inline engine script not found");
 
-new Function(inlineScripts[0]);
+const source = html.slice(start + "<script>".length, end);
+new Function(source);
 console.log("Chess engine inline JavaScript syntax: OK");
