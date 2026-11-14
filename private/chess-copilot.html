@@ -178,31 +178,12 @@ function att(b,r,c,col){
 function hangs(b){var out=[],r,c,p,A,D;for(r=0;r<8;r++)for(c=0;c<8;c++){p=b[r][c];if(!p||p.type==="k")continue;A=att(b,r,c,p.color==="w"?"b":"w");if(!A.length)continue;D=att(b,r,c,p.color);if(!D.length||Math.min.apply(null,A)<V[p.type])out.push({s:sq(r,c),t:p.type,c:p.color})}return out}
 function oppMates(){if(G.in_check())return[];var f=G.fen().split(" "),T=new Chess(),o=[];f[1]=f[1]==="w"?"b":"w";f[3]="-";if(!T.load(f.join(" ")))return[];T.moves().forEach(function(m){T.move(m);if(T.in_checkmate())o.push(m);T.undo()});return o}
 
-/* built-in fallback search (shallow, blocks UI up to ~1.5s) */
-function ev(){var b=G.board(),s=0,r,c,p,v;for(r=0;r<8;r++)for(c=0;c<8;c++){p=b[r][c];if(!p||p.type==="k")continue;v=V[p.type]*100;if(p.type==="p")v+=(p.color==="w"?6-r:r-1)*5;else if((p.type==="n"||p.type==="b")&&r>1&&r<6&&c>1&&c<6)v+=12;s+=p.color==="w"?v:-v}return G.turn()==="w"?s:-s}
-function sc(m){return(m.captured?10*V[m.captured]-V[m.piece]:0)+(m.promotion?8:0)+(m.san.indexOf("+")>0?1:0)}
-function ord(x,y){return sc(y)-sc(x)}
-function tick(){if(++nodes%400===0&&Date.now()>dl)throw 1}
-function qs(a,b,d){tick();var st=ev(),ms,i,s;if(d===0||st>=b)return st;if(st>a)a=st;ms=G.moves({verbose:true}).filter(function(m){return m.captured}).sort(ord);for(i=0;i<ms.length;i++){G.move(ms[i]);s=-qs(-b,-a,d-1);G.undo();if(s>=b)return s;if(s>a)a=s}return a}
-function ab(d,a,b,ply){tick();var ms=G.moves({verbose:true}),i,s;if(!ms.length)return G.in_check()?-99000+ply:0;if(d===0)return qs(a,b,3);ms.sort(ord);for(i=0;i<ms.length;i++){G.move(ms[i]);s=-ab(d-1,-b,-a,ply+1);G.undo();if(s>a)a=s;if(a>=b)break}return a}
-function think(ms){
- var best=null,n0=G.history().length,t0=Date.now(),d,c2,a,list,i,s;nodes=0;ms.sort(ord);
- for(d=1;d<=4;d++){
-  dl=d===1?1e15:t0+1500;c2=null;a=-1e6;list=ms.slice();
-  if(best)list.sort(function(x,y){return(y===best.mv)-(x===best.mv)});
-  try{for(i=0;i<list.length;i++){G.move(list[i]);s=-ab(d-1,-1e6,-a,1);G.undo();if(!c2||s>a){a=s;c2={mv:list[i],score:s,d:d}}}}
-  catch(e){while(G.history().length>n0)G.undo();if(e!==1)throw e;break}
-  best=c2;if(c2.score>90000)break;
- }
- return best;
-}
-
 /* Stockfish controller: one worker, one search at a time, stale results dropped */
 var E={w:null,ok:false,failed:false,run:null,next:null,name:"",opts:{}};
 function setSt(t,ok){$("st").textContent=t;$("st").className=ok?"ok":""}
 E.fail=function(m){
  if(E.ok||E.failed)return;E.failed=true;try{E.w&&E.w.terminate()}catch(e){}E.w=null;
- setSt("Fallback: built-in shallow search ("+m+")");
+ setSt("Stockfish unavailable ("+m+")");
  if(E.next){var j=E.next;E.next=null;j.fbd=true;if(j.fb)j.fb();j.res(j)}
 };
 E.send=function(s){if(E.w)E.w.postMessage(s)};
