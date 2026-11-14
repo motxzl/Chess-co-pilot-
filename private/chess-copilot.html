@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chess Co-Pilot</title>
+<style>
+:root{--bg:#0e1411;--card:#151d19;--ink:#e6ece8;--mute:#8a9a92;--line:#25322b;--acc:#4fbf7f;--on:#07130c;--bad:#ff7b6e;--warn:#e0a040;--lt:#bcc7b8;--dk:#5d7866;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:10px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:20px;margin:0}
+#st{font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+#st.ok{color:var(--acc);border-color:var(--acc)}
+.grid{display:grid;gap:10px;margin-top:10px}
+@media(min-width:860px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}
+.mute{color:var(--mute)}.sm{font-size:14px}.big{font-size:32px;font-weight:700;line-height:1.15}
+textarea,input,select{box-sizing:border-box;font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#0b110e;color:var(--ink)}
+textarea{width:100%;margin:8px 0}
+button{font:inherit;font-weight:600;min-height:44px;min-width:44px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:#1b2620;color:var(--ink);cursor:pointer}
+button.on,button.pri{background:var(--acc);color:var(--on);border-color:var(--acc)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.row label{font-size:14px;color:var(--mute)}
+.bw{position:relative}
+#eb{position:relative;height:20px;background:#2a332e;border-radius:6px;overflow:hidden;margin-bottom:6px}
+#ef{position:absolute;left:0;top:0;bottom:0;width:50%;background:var(--acc);transition:width .25s}
+#et{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;mix-blend-mode:difference;color:#fff}
+.bd{--sz:min(calc((100vw - 20px) / 8 * .8),56px);display:grid;grid-template-columns:repeat(8,1fr);border-radius:6px;overflow:hidden;touch-action:manipulation}
+.sq{aspect-ratio:1;display:flex;align-items:center;justify-content:center;position:relative;font-size:var(--sz);line-height:1;user-select:none;-webkit-tap-highlight-color:transparent}
+.l{background:var(--lt)}.d{background:var(--dk)}
+.pw{color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 1px 2px #000}
+.pb{color:#111;text-shadow:0 0 1px rgba(255,255,255,.45)}
+.sel{outline:3px solid #f2c94c;outline-offset:-3px}
+.hm::after,.ho::after{content:"";position:absolute;inset:0;pointer-events:none}
+.hm::after{box-shadow:inset 0 0 0 3px #e5483b}.ho::after{box-shadow:inset 0 0 0 3px #2fb36b}
+.sq u{position:absolute;width:26%;height:26%;border-radius:50%;background:rgba(10,20,15,.4);pointer-events:none}
+.sq em{position:absolute;font-style:normal;font-size:10px;line-height:1;font-weight:700;opacity:.7;pointer-events:none;color:#0c1812}
+.rk{top:3px;left:3px}.fl{bottom:3px;right:3px}
+#ar{position:absolute;left:0;right:0;top:26px;aspect-ratio:1;width:100%;pointer-events:none}
+#pm{display:flex;gap:6px;margin-top:6px}
+.ch{min-height:36px;padding:0 8px;font-weight:500;margin:2px 2px 2px 0}
+.ch.x3{color:var(--warn)}.ch.x4{color:#ff9a4d}.ch.x5{color:var(--bad)}
+.note{margin-top:6px;padding-left:10px;border-left:4px solid var(--line)}
+.note.bad{border-color:var(--bad)}.note.good{border-color:var(--acc)}
+#ms{min-height:20px;font-size:14px;color:var(--bad);margin-top:4px}
+.sl{display:flex;gap:6px;align-items:center;margin:4px 0}.sl label{flex:0 0 140px;font-size:14px;color:var(--mute)}.sl input[type=range]{flex:1;min-width:0}#oc label{font-size:14px;color:var(--mute)}#oc select{max-width:100%}#bp{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><h1>Chess Co-Pilot</h1><span id="st">Engine: loading Stockfish…</span></div>
+<div class="grid">
+<div>
+<div class="bw">
+<div id="eb"><i id="ef"></i><span id="et">—</span></div>
+<div id="bd" class="bd"></div>
+<svg id="ar" viewBox="0 0 8 8"></svg>
+</div>
+<div id="pm"></div>
+<div class="sm mute" id="pl" style="margin-top:4px"></div>
+<div class="row">
+<button id="b0" aria-label="Start">⏮</button><button id="b1" aria-label="Back">◀</button><button id="b2" aria-label="Forward">▶</button><button id="b3" aria-label="End">⏭</button>
+<button id="un">Undo</button><button id="fl">Flip</button>
+</div>
+<div class="row"><input id="mv" placeholder="Move: Nf3, g1f3, or 1. e4 e5 2. Nf3" style="flex:1;min-width:0" autocapitalize="off" autocomplete="off"><button id="mg" class="pri">Play</button></div>
+<div id="ms"></div>
+<details class="card" open><summary>Game setup</summary>
+<div class="row"><span class="sm mute">I play:</span><button data-side="w" class="on">White</button><button data-side="b">Black</button><button data-side="both">Both sides</button></div>
+<textarea id="in" rows="3" placeholder="Paste FEN or PGN to import. Export fills this box."></textarea>
+<div class="row"><button id="ld" class="pri">Import</button><button id="ex">Export PGN</button><button id="nw">New game</button></div>
+<div class="row"><label>Depth cap <select id="dp"><option>12</option><option selected>16</option><option>20</option><option>24</option></select></label>
+<label>Time <select id="tm"><option value="1">1s</option><option value="3" selected>3s</option><option value="8">8s</option><option value="15">15s</option></select></label>
+<label>Lines <select id="ml"><option>1</option><option selected>2</option><option>3</option></select></label>
+<label><input type="checkbox" id="arw" checked> Arrow</label></div>
+</details>
+<details class="card" open><summary>Opponent bot and strength</summary><div id="oc"></div>
+</details>
+</div>
+<div>
+<div class="card" id="rec"></div>
+<div class="card" id="alt" style="display:none"></div>
+<div class="card" id="bp"></div>
+<div class="card" id="nt"></div>
+<div class="card"><div class="row" style="margin-top:0"><b>Moves</b><button id="rv" style="margin-left:auto">Review game</button></div>
+<div id="hs"></div><div id="rs" class="sm" style="margin-top:6px"></div>
+<details class="sm mute" style="margin-top:6px"><summary>How moves are rated</summary>Rating compares engine evals before and after each move, from the mover’s side, in pawns lost: Best ≤0.10 or the engine’s move, Excellent ≤0.30, Good ≤0.80, Inaccuracy ≤1.5 (?!), Mistake ≤3 (?), Blunder over 3 (??). Mate scores count as ±10. Ratings appear only after Review game, and quick review depths can be noisy.</details></div>
+</div>
+</div>
+<p class="sm mute">Moves are validated by chess.js. Evals and lines come from the engine named in the status pill. The notes are rule-based checks, not engine output.</p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+if(typeof Chess==="undefined"){$("st").textContent="Chess library failed to load. Reload the page.";return}
+var SF="https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js";
+var ST="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+var V={p:1,n:3,b:3,r:5,q:9,k:100},GL={k:"\u265A",q:"\u265B",r:"\u265C",b:"\u265D",n:"\u265E",p:"\u265F"},NM={p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen",k:"king"};
+var CN=["Best","Excellent","Good","Inaccuracy","Mistake","Blunder"],CM=["★","","","?!","?","??"];
+var S={start:ST,line:[],ply:0,side:"w",flip:false,sel:null,pro:null,fens:[ST],evals:{},wanted:0,rev:false};
+var G=new Chess(),cur={fen:"",lines:{},depth:0,done:false,eng:""},dl=0,nodes=0;
+function sq(r,c){return "abcdefgh".charAt(c)+(8-r)}
+function msg(t){$("ms").textContent=t||""}
+function pov(){return S.side==="b"?-1:1}
+function neg(s){return s.mate!==undefined?{mate:-s.mate}:{cp:-s.cp}}
+function num(s){return s.mate!==undefined?(s.mate>0?1:-1)*(10000-Math.abs(s.mate)):s.cp}
+function cl(x){return Math.max(-1000,Math.min(1000,x))}
+function show(s,p){if(s.mate!==undefined){var m=s.mate*p;return(m>0?"M":"-M")+Math.abs(m)}var v=s.cp*p/100;return(v>0?"+":"")+v.toFixed(2)}
+function pvSan(fen,pv,n){var g=new Chess(fen),o=[],i,m;for(i=0;i<pv.length&&i<n;i++){m=g.move({from:pv[i].slice(0,2),to:pv[i].slice(2,4),promotion:pv[i].slice(4,5)||undefined});if(!m)break;o.push(m)}return o}
+function over(){if(G.in_checkmate())return"Checkmate. "+(G.turn()==="w"?"Black":"White")+" wins.";if(G.in_stalemate())return"Stalemate: draw.";if(G.in_threefold_repetition())return"Draw by repetition.";if(G.insufficient_material())return"Draw: insufficient material.";if(G.in_draw())return"Draw (50-move rule).";return""}
+
+/* rule-based checks */
+function att(b,r,c,col){
+ var a=[],p,x,y,dx,dy,n,t,i,pr=col==="w"?r+1:r-1;
+ [c-1,c+1].forEach(function(xx){if(xx>=0&&xx<8&&pr>=0&&pr<8){p=b[pr][xx];if(p&&p.color===col&&p.type==="p")a.push(1)}});
+ [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(function(d){x=c+d[0];y=r+d[1];if(x>=0&&x<8&&y>=0&&y<8){p=b[y][x];if(p&&p.color===col&&p.type==="n")a.push(3)}});
+ for(dy=-1;dy<2;dy++)for(dx=-1;dx<2;dx++){
+  if(!dx&&!dy)continue;
+  x=c+dx;y=r+dy;n=1;
+  while(x>=0&&x<8&&y>=0&&y<8){p=b[y][x];if(p){if(p.color===col){t=p.type;i=dx&&dy;if(t==="q"||(t==="b"&&i)||(t==="r"&&!i)||(t==="k"&&n===1))a.push(V[t])}break}x+=dx;y+=dy;n++}
+ }
+ return a;
+}
+function hangs(b){var out=[],r,c,p,A,D;for(r=0;r<8;r++)for(c=0;c<8;c++){p=b[r][c];if(!p||p.type==="k")continue;A=att(b,r,c,p.color==="w"?"b":"w");if(!A.length)continue;D=att(b,r,c,p.color);if(!D.length||Math.min.apply(null,A)<V[p.type])out.push({s:sq(r,c),t:p.type,c:p.color})}return out}
+function oppMates(){if(G.in_check())return[];var f=G.fen().split(" "),T=new Chess(),o=[];f[1]=f[1]==="w"?"b":"w";f[3]="-";if(!T.load(f.join(" ")))return[];T.moves().forEach(function(m){T.move(m);if(T.in_checkmate())o.push(m);T.undo()});return o}
+
+/* built-in fallback search (shallow, blocks UI up to ~1.5s) */
+function ev(){var b=G.board(),s=0,r,c,p,v;for(r=0;r<8;r++)for(c=0;c<8;c++){p=b[r][c];if(!p||p.type==="k")continue;v=V[p.type]*100;if(p.type==="p")v+=(p.color==="w"?6-r:r-1)*5;else if((p.type==="n"||p.type==="b")&&r>1&&r<6&&c>1&&c<6)v+=12;s+=p.color==="w"?v:-v}return G.turn()==="w"?s:-s}
+function sc(m){return(m.captured?10*V[m.captured]-V[m.piece]:0)+(m.promotion?8:0)+(m.san.indexOf("+")>0?1:0)}
+function ord(x,y){return sc(y)-sc(x)}
+function tick(){if(++nodes%400===0&&Date.now()>dl)throw 1}
+function qs(a,b,d){tick();var st=ev(),ms,i,s;if(d===0||st>=b)return st;if(st>a)a=st;ms=G.moves({verbose:true}).filter(function(m){return m.captured}).sort(ord);for(i=0;i<ms.length;i++){G.move(ms[i]);s=-qs(-b,-a,d-1);G.undo();if(s>=b)return s;if(s>a)a=s}return a}
+function ab(d,a,b,ply){tick();var ms=G.moves({verbose:true}),i,s;if(!ms.length)return G.in_check()?-99000+ply:0;if(d===0)return qs(a,b,3);ms.sort(ord);for(i=0;i<ms.length;i++){G.move(ms[i]);s=-ab(d-1,-b,-a,ply+1);G.undo();if(s>a)a=s;if(a>=b)break}return a}
+function think(ms){
+ var best=null,n0=G.history().length,t0=Date.now(),d,c2,a,list,i,s;nodes=0;ms.sort(ord);
+ for(d=1;d<=4;d++){
+  dl=d===1?1e15:t0+1500;c2=null;a=-1e6;list=ms.slice();
+  if(best)list.sort(function(x,y){return(y===best.mv)-(x===best.mv)});
+  try{for(i=0;i<list.length;i++){G.move(list[i]);s=-ab(d-1,-1e6,-a,1);G.undo();if(!c2||s>a){a=s;c2={mv:list[i],score:s,d:d}}}}
+  catch(e){while(G.history().length>n0)G.undo();if(e!==1)throw e;break}
+  best=c2;if(c2.score>90000)break;
+ }
+ return best;
+}
+
+/* Stockfish controller: one worker, one search at a time, stale results dropped */
+var E={w:null,ok:false,failed:false,run:null,next:null,name:"",opts:{}};
+function setSt(t,ok){$("st").textContent=t;$("st").className=ok?"ok":""}
+E.fail=function(m){
+ if(E.ok||E.failed)return;E.failed=true;try{E.w&&E.w.terminate()}catch(e){}E.w=null;
+ setSt("Fallback: built-in shallow search ("+m+")");
+ if(E.next){var j=E.next;E.next=null;j.fbd=true;if(j.fb)j.fb();j.res(j)}
+};
+E.send=function(s){if(E.w)E.w.postMessage(s)};
+E.init=function(){
+ try{E.w=new Worker(URL.createObjectURL(new Blob(["importScripts('"+SF+"')"],{type:"text/javascript"})))}catch(e){E.fail("worker blocked");return}
+ E.w.onerror=function(){E.fail("engine failed to load")};
+ E.w.onmessage=function(ev){E.msg(String(ev.data))};
+ E.send("uci");setTimeout(function(){E.fail("load timed out")},15000);
+};
+E.msg=function(l){
+ var j;
+ if(l.indexOf("id name")===0)E.name=l.slice(8);
+ else if(l.indexOf("option name")===0){j=l.match(/^option name (.+?) type/);if(j)E.opts[j[1]]=1}
+ else if(l==="uciok")E.send("isready");
+ else if(l==="readyok"){if(!E.ok){E.ok=true;setSt("Engine: "+(E.name||"Stockfish"),true);oppInfo()}E.start()}
+ else if(l.indexOf("info")===0&&E.run)E.info(l);
+ else if(l.indexOf("bestmove")===0){j=E.run;E.run=null;if(j)j.res(j);E.start()}
+};
+E.go=function(job){return new Promise(function(res){
+ job.res=res;
+ if(E.failed){job.fbd=true;if(job.fb)job.fb();res(job);return}
+ if(E.next){E.next.dead=true;E.next.res(E.next)}
+ E.next=job;
+ if(E.run){E.run.dead=true;E.send("stop")}else E.start();
+})};
+E.cancel=function(){if(E.next){E.next.dead=true;E.next.res(E.next);E.next=null}if(E.run){E.run.dead=true;E.send("stop")}};
+E.start=function(){
+ var j=E.next;if(E.run||!j||!E.ok)return;
+ E.next=null;E.run=j;j.lines={};j.depth=0;
+ E.send("setoption name MultiPV value "+j.mpv);if(E.opts["Skill Level"])E.send("setoption name Skill Level value "+(j.skill===undefined?20:j.skill));E.send("position fen "+j.fen);E.send("go depth "+j.dmax+" movetime "+j.mt);
+};
+E.info=function(l){
+ var j=E.run,d,s,p,m,k,x,c2;
+ if(j.dead||/bound/.test(l))return;
+ d=l.match(/ depth (\d+)/);s=l.match(/ score (cp|mate) (-?\d+)/);p=l.match(/ pv (.+)$/);m=l.match(/ multipv (\d+)/);
+ if(!d||!s||!p)return;
+ k=m?+m[1]:1;x=+s[2];c2=s[1]==="cp"?{cp:x}:{mate:x};if(j.turn==="b")c2=neg(c2);
+ j.lines[k]={sc:c2,d:+d[1],pv:p[1].split(" ")};j.depth=Math.max(j.depth,+d[1]);
+ if(j.onInfo)j.onInfo(j.lines,j.depth);
+};
+
+/* game state */
+function build(n){var g=new Chess(S.start),i;for(i=0;i<n;i++)g.move(S.line[i]);return g}
+function refresh(){
+ var g=new Chess(S.start),i;S.fens=[g.fen()];
+ for(i=0;i<S.line.length;i++){g.move(S.line[i]);S.fens.push(g.fen())}
+ G=build(S.ply);S.sel=null;S.pro=null;draw();hist();analyze();
+}
+function play(f,t,p){
+ var r=G.move({from:f,to:t,promotion:p});
+ if(!r){msg("Illegal move.");return false}
+ S.line=S.line.slice(0,S.ply);S.line.push({from:r.from,to:r.to,promotion:r.promotion,san:r.san});S.ply=S.line.length;msg("");refresh();return true;
+}
+function keep(fen,L){var b=L[1],o;if(!b)return;o=S.evals[fen];if(!o||b.d>=o.d)S.evals[fen]={sc:b.sc,d:b.d,best:b.pv[0]}}
+function fallback(fen,id){
+ setTimeout(function(){
+  if(id!==S.wanted)return;
+  var ms=G.moves({verbose:true}),r=think(ms),s=r.score,t=G.turn(),c2;
+  c2=s>90000?{mate:Math.round((99001-s)/2)}:s<-90000?{mate:-Math.round((99000+s)/2)}:{cp:s};if(t==="b")c2=neg(c2);
+  cur.lines={1:{sc:c2,d:r.d,pv:[r.mv.from+r.mv.to+(r.mv.promotion||"")]}};cur.depth=r.d;cur.eng="bi";cur.done=true;keep(fen,cur.lines);render();
+ },30);
+}
+function analyze(){
+ var fen=G.fen(),id=++S.wanted,job;
+ cur={fen:fen,lines:{},depth:0,done:false,eng:""};
+ if(S.rev||G.moves().length===0){cur.done=true;if(!S.rev)E.cancel();render();return}
+ if(botTurn()){render();$("rec").innerHTML="<div class='mute'>Opponent bot is thinking…</div>";botMove(id);return}
+ job={fen:fen,turn:G.turn(),dmax:+$("dp").value,mt:+$("tm").value*1000,mpv:+$("ml").value,
+  onInfo:function(L,d){if(id!==S.wanted)return;cur.lines=L;cur.depth=d;cur.eng="sf";keep(fen,L);render()},
+  fb:function(){fallback(fen,id)}};
+ render();
+ E.go(job).then(function(j){if(id===S.wanted&&!j.dead&&!j.fbd){cur.done=true;render()}});
+}
+
+/* rendering */
+function draw(){
+ var b=G.board(),t=G.turn(),lg=S.sel?G.moves({square:S.sel,verbose:true}):[],h="",i,j,k,r,c,p,n,cl2,inner,hg=hangs(b);
+ for(i=0;i<8;i++)for(j=0;j<8;j++){
+  r=S.flip?7-i:i;c=S.flip?7-j:j;p=b[r][c];n=sq(r,c);cl2="sq "+((r+c)%2?"d":"l");
+  if(n===S.sel)cl2+=" sel";
+  for(k=0;k<hg.length;k++)if(hg[k].s===n)cl2+=hg[k].c===t?" hm":" ho";
+  inner="";
+  if(p)inner+="<span class='p"+p.color+"'>"+GL[p.type]+"\uFE0E</span>";
+  if(lg.some(function(m){return m.to===n}))inner+="<u></u>";
+  if(j===0)inner+="<em class='rk'>"+(8-r)+"</em>";
+  if(i===7)inner+="<em class='fl'>"+"abcdefgh".charAt(c)+"</em>";
+  h+="<div class='"+cl2+"' data-s='"+n+"'>"+inner+"</div>";
+ }
+ $("bd").innerHTML=h;
+ $("pm").innerHTML=S.pro?"<span class='sm mute' style='align-self:center'>Promote to:</span>"+["q","r","b","n"].map(function(x){return"<button data-p='"+x+"'>"+GL[x]+"\uFE0E</button>"}).join(""):"";
+ arrows();
+}
+function xy(s){var f=s.charCodeAt(0)-97,r=+s.charAt(1);return[(S.flip?7-f:f)+.5,(S.flip?r-1:8-r)+.5]}
+function arrows(){
+ var b=cur.lines[1],h="",a,z,dx,dy,L,x,y,hx,hy,col;
+ if($("arw").checked&&b&&cur.fen===G.fen()&&b.pv&&b.pv[0]&&b.pv[0].length>=4){
+  a=xy(b.pv[0].slice(0,2));z=xy(b.pv[0].slice(2,4));dx=z[0]-a[0];dy=z[1]-a[1];L=Math.hypot(dx,dy);
+  if(L>0){x=dx/L;y=dy/L;hx=z[0]-x*.38;hy=z[1]-y*.38;col=(S.side==="both"||G.turn()===S.side)?"#4fbf7f":"#e0a040";
+   h="<g fill='"+col+"' stroke='"+col+"' opacity='.85'><line x1='"+a[0]+"' y1='"+a[1]+"' x2='"+hx+"' y2='"+hy+"' stroke-width='.17' stroke-linecap='round'/><polygon stroke='none' points='"+z[0]+","+z[1]+" "+(hx-y*.22)+","+(hy+x*.22)+" "+(hx+y*.22)+","+(hy-x*.22)+"'/></g>"}
+ }
+ $("ar").innerHTML=h;
+}
+function note(k,t,x){return"<div class='note "+k+"'><b>"+t+"</b> "+x+"</div>"}
+function fmtH(l){return l.map(function(x){return NM[x.t]+" "+x.s}).join(", ")}
+function render(){
+ var p=pov(),t=G.turn(),me=S.side,o=over(),b=cur.lines[1],h="",a="",n="",L,w,mv,k,l,sn,hg,mine,theirs,om,f=[],pe,dv,mat=0,bd=G.board(),r,c,q,mate;
+ for(r=0;r<8;r++)for(c=0;c<8;c++){q=bd[r][c];if(q&&q.type!=="k")mat+=q.color==="w"?V[q.type]:-V[q.type]}
+ $("pl").textContent=me==="both"?"Eval is from White’s side: + favors White.":"Eval is from your side ("+(me==="w"?"White":"Black")+"): + favors you.";
+ if(b){w=100/(1+Math.exp(-cl(num(b.sc))*p/200));$("ef").style.width=w+"%";$("et").textContent=show(b.sc,p)}else{$("ef").style.width="50%";$("et").textContent="—"}
+ if(o)h+="<div><b>"+o+"</b></div>";
+ if(!b){h+=G.moves().length===0?"":"<div class='mute'>"+(S.rev?"Review running. Live analysis resumes after.":"Analyzing…")+"</div>"}
+ else{
+  L=pvSan(cur.fen,b.pv,10);
+  if(L.length){
+   mv=L[0];
+   h+="<div class='sm mute'>"+(me==="both"?(t==="w"?"White":"Black")+"’s best move":(t===me?"Best move for you":"Opponent’s best move (their threat)"))+"</div><div class='big'>"+mv.san+"</div>";
+   h+="<div>"+mv.from+" → "+mv.to+" · eval "+show(b.sc,p)+" · depth "+cur.depth+" · "+(cur.eng==="sf"?(E.name||"Stockfish"):"built-in search (shallow)")+(cur.done?"":" · searching…")+"</div>";
+   pe=S.ply>0?S.evals[S.fens[S.ply-1]]:null;
+   if(pe){dv=(cl(num(b.sc))-cl(num(pe.sc)))*p/100;h+="<div class='sm mute'>Change since previous position: "+(dv>0?"+":"")+dv.toFixed(2)+"</div>"}
+   h+="<div class='sm' style='margin-top:4px'>Line: "+L.map(function(m){return m.san}).join(" ")+"</div>";
+   for(k=2;k<=3;k++){l=cur.lines[k];if(!l)continue;sn=pvSan(cur.fen,l.pv,5);if(!sn.length)continue;
+    a+="<div><b>"+sn[0].san+"</b> "+show(l.sc,p)+(Math.abs(num(b.sc)-num(l.sc))<=20?" <span class='mute'>(comparable to best)</span>":"")+" <span class='sm mute'>"+sn.map(function(m){return m.san}).join(" ")+"</span></div>"}
+   mate=b.sc.mate!==undefined&&((b.sc.mate>0)===(t==="w"));
+   if(mate)f.push("the engine sees a forced mate in "+Math.abs(b.sc.mate));
+   if(mv.captured)f.push("captures a "+NM[mv.captured]);
+   if(/#/.test(mv.san))f.push("delivers checkmate");else if(/\+/.test(mv.san))f.push("gives check");
+   if(mv.promotion)f.push("promotes");
+   if(/[kq]/.test(mv.flags))f.push("castles");
+   if(/e/.test(mv.flags))f.push("captures en passant");
+  }
+ }
+ hg=hangs(G.board());mine=hg.filter(function(x){return x.c===t});theirs=hg.filter(function(x){return x.c!==t});om=oppMates();
+ if(f.length)n+=note("good","Recommended move:",f.join(", ")+".");
+ if(G.in_check()&&!o)n+=note("bad","In check.","The side to move must answer the check.");
+ if(om.length)n+=note("bad","Mate threat:",(t===me||me==="both"?"opponent":"the side not on move")+" threatens "+om.slice(0,3).join(", ")+" next.");
+ if(mine.length)n+=note("bad","Side to move has attacked, loose pieces:",fmtH(mine)+" (red squares).");
+ if(theirs.length)n+=note("good","Loose pieces of the other side:",fmtH(theirs)+" (green squares).");
+ n+=note("","Material:",mat===0?"even":(mat>0?"White":"Black")+" up "+Math.abs(mat)+".")+"<div class='sm mute' style='margin-top:6px'>Move "+G.fen().split(" ")[5]+", "+(t==="w"?"White":"Black")+" to move. Rule-based checks above are verified against legal moves, not engine output. Pins, forks and king-safety scoring are not analyzed separately.</div>";
+ $("rec").innerHTML=h;$("alt").style.display=a?"block":"none";$("alt").innerHTML="<b>Alternatives</b>"+a;$("nt").innerHTML=n;arrows();renderBot();
+}
+function cls(i){
+ var a=S.evals[S.fens[i]],b=S.evals[S.fens[i+1]],m=S.line[i],sg,loss,u,k;
+ if(!a||!b||a.d<6||b.d<6)return null;
+ sg=S.fens[i].split(" ")[1]==="w"?1:-1;loss=sg*(cl(num(a.sc))-cl(num(b.sc)));u=m.from+m.to+(m.promotion||"");
+ k=u===a.best||loss<=10?0:loss<=30?1:loss<=80?2:loss<=150?3:loss<=300?4:5;
+ return{k:k,loss:loss};
+}
+function hist(){
+ var h="",i,m,t,c,s=[],a,bs;
+ for(i=0;i<S.line.length;i++){
+  m=S.line[i];t=S.fens[i].split(" ");c=cls(i);
+  h+="<button class='ch"+(i+1===S.ply?" on":"")+(c&&c.k>=3?" x"+c.k:"")+"' data-i='"+i+"' title='"+(c?CN[c.k]:"")+"'>"+(t[1]==="w"?t[5]+". ":(i===0?t[5]+"… ":""))+m.san+(c?CM[c.k]:"")+"</button>";
+  if(c&&c.k>=4){a=S.evals[S.fens[i]];bs=pvSan(S.fens[i],[a.best],1)[0];s.push((t[1]==="w"?t[5]+". ":t[5]+"… ")+m.san+" "+CN[c.k]+" (lost about "+(Math.min(c.loss,1000)/100).toFixed(1)+"), engine preferred "+(bs?bs.san:"?"))}
+ }
+ $("hs").innerHTML=h||"<span class='mute sm'>No moves yet.</span>";
+ $("rs").innerHTML=s.length?"<b>Critical moments</b><br>"+s.slice(0,8).join("<br>"):"";
+}
+
+/* input */
+$("bd").onclick=function(e){
+ var el=e.target.closest(".sq"),s,m,p;if(!el)return;s=el.getAttribute("data-s");
+ if(S.sel){m=G.moves({square:S.sel,verbose:true}).filter(function(x){return x.to===s});
+  if(m.length){if(m[0].promotion){S.pro={f:S.sel,t:s};draw();return}play(S.sel,s);return}}
+ p=G.get(s);S.sel=(p&&p.color===G.turn()&&s!==S.sel)?s:null;msg("");draw();
+};
+$("pm").onclick=function(e){var b=e.target.closest("button");if(b&&S.pro)play(S.pro.f,S.pro.t,b.getAttribute("data-p"))};
+function enter(){
+ var t=$("mv").value.trim(),toks,g=build(S.ply),add=[],i,m,k;
+ if(!t)return;
+ toks=t.replace(/\d+\.(\.\.)?/g," ").replace(/[{}]/g," ").split(/\s+/).filter(Boolean);
+ for(i=0;i<toks.length;i++){
+  k=toks[i];
+  m=/^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/.test(k)?g.move({from:k.slice(0,2),to:k.slice(2,4),promotion:k.slice(4,5).toLowerCase()||undefined}):g.move(k,{sloppy:true});
+  if(!m){msg("Can’t play “"+k+"”. It is illegal or ambiguous here (for example, write Nbd2 instead of Nd2). Legal: "+g.moves().slice(0,14).join(" ")+(g.moves().length>14?" …":""));return}
+  add.push({from:m.from,to:m.to,promotion:m.promotion,san:m.san});
+ }
+ S.line=S.line.slice(0,S.ply).concat(add);S.ply=S.line.length;$("mv").value="";msg("");refresh();
+}
+$("mg").onclick=enter;$("mv").onkeydown=function(e){if(e.key==="Enter")enter()};
+$("ld").onclick=function(){
+ var t=$("in").value.trim(),N=new Chess(),pgn=/\d+\.|\[/.test(t),ok,h,fe;
+ if(!t){msg("Paste a FEN or PGN first.");return}
+ if(pgn){ok=N.load_pgn(t,{sloppy:true});if(!ok){msg("That PGN couldn’t be read. Check that every move is legal and the text is complete.");return}
+  h=N.header();S.start=h.FEN||ST;S.line=N.history({verbose:true}).map(function(m){return{from:m.from,to:m.to,promotion:m.promotion,san:m.san}});S.ply=S.line.length}
+ else{fe=N.validate_fen(t);if(!fe.valid){msg("Invalid FEN: "+fe.error);return}S.start=t;S.line=[];S.ply=0}
+ S.evals={};msg("");refresh();
+};
+$("ex").onclick=function(){
+ var g=new Chess(S.start),i,p;
+ if(S.start!==ST)g.header("SetUp","1","FEN",S.start);
+ for(i=0;i<S.line.length;i++)g.move(S.line[i]);
+ p=g.pgn();$("in").value=p;$("in").select();
+ try{navigator.clipboard.writeText(p);msg("PGN copied and shown in the box.")}catch(e){msg("PGN is in the box. Select and copy it.")}
+};
+$("nw").onclick=function(){S.start=ST;S.line=[];S.ply=0;S.evals={};msg("");refresh()};
+$("b0").onclick=function(){S.ply=0;refresh()};
+$("b1").onclick=function(){S.ply=Math.max(0,S.ply-1);refresh()};
+$("b2").onclick=function(){S.ply=Math.min(S.line.length,S.ply+1);refresh()};
+$("b3").onclick=function(){S.ply=S.line.length;refresh()};
+$("un").onclick=function(){if(S.ply>0){S.line=S.line.slice(0,S.ply-1);S.ply=S.line.length;refresh()}};
+$("fl").onclick=function(){S.flip=!S.flip;draw()};
+$("hs").onclick=function(e){var b=e.target.closest(".ch");if(b){S.ply=+b.getAttribute("data-i")+1;refresh()}};
+Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.onclick=function(){
+ S.side=b.getAttribute("data-side");S.flip=S.side==="b";
+ Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(x){x.className=x===b?"on":""});draw();render();
+}});
+["dp","tm","ml"].forEach(function(i){$(i).onchange=analyze});
+$("arw").onchange=arrows;
+$("rv").onclick=function(){
+ var n,i=0;
+ if(S.rev){S.rev=false;return}
+ if(!E.ok){msg("Game review needs Stockfish, which isn’t running. See the status pill.");return}
+ if(!S.line.length){msg("Play or import some moves first.");return}
+ n=S.fens.slice();S.rev=true;$("rv").textContent="Stop review";msg("");
+ (function next(){
+  var f,job;
+  if(!S.rev||i>=n.length){S.rev=false;$("rv").textContent="Review game";msg("");hist();analyze();return}
+  $("ms").textContent="Reviewing position "+(i+1)+" of "+n.length+"…";
+  f=n[i];job={fen:f,turn:f.split(" ")[1],dmax:30,mt:500,mpv:1};
+  E.go(job).then(function(j){if(j.lines&&j.lines[1])keep(f,j.lines);i++;hist();next()});
+ })();
+};
+/* ---- opponent bot: separate config from analysis ---- */
+/*PICK*/
+var BANDS={tiny:[10,40],minor:[40,100],noticeable:[100,250],major:[250,800]};
+function pick(cs,c,R){
+ var n=cs.length,sg=(1-c.P/100)*70,i,t=cs.slice().sort(function(a,b){return b.cp-a.cp}),tb=t[0],gap=n>1?t[0].cp-t[1].cp:0,
+ q=cs.map(function(m){return{u:m.u,cp:m.cp,z:m.cp+(m.f||sg<=0?0:(R()+R()+R()-1.5)*2*sg)}}),
+ base=q.reduce(function(a,b){return b.z>a.z?b:a}),hard,p,cx,bnd,el,w,tot,r;
+ if(n<2)return{u:tb.u,b:tb.u,loss:0,why:"only"};
+ p=c.F/100;cx=Math.min(1,gap/300)*.5+Math.min(1,n/6)*.5;
+ if(c.hum)p=Math.min(1,p*(.6+.8*cx));
+ hard=gap>=150&&R()<(1-c.T/100)*Math.min(1,gap/500);
+ if(hard||R()<p){
+  r=R();bnd=BANDS[c.sev=="mixed"?["tiny","minor","noticeable","major"][r<.4?0:r<.7?1:r<.9?2:3]:c.sev];
+  el=cs.filter(function(m){return m.u!==tb.u&&tb.cp-m.cp>=bnd[0]&&tb.cp-m.cp<=bnd[1]});
+  if(!el.length)el=cs.filter(function(m){return m.u!==tb.u&&tb.cp-m.cp>=bnd[0]*.5&&tb.cp-m.cp<=bnd[1]*1.4});
+  if(el.length){w=el.map(function(m){return 1/(1+(tb.cp-m.cp)/40)});tot=w.reduce(function(a,b){return a+b},0);r=R()*tot;for(i=0;i<el.length-1;i++){r-=w[i];if(r<=0)break}
+   return{u:el[i].u,b:tb.u,loss:tb.cp-el[i].cp,why:hard?"missed tactic":"mistake roll"}}
+ }
+ return{u:base.u,b:tb.u,loss:tb.cp-cs.filter(function(m){return m.u===base.u})[0].cp,why:base.u===tb.u?"best":"positional misjudgment"};
+}
+/*ENDPICK*/
+var PRE={Beginner:[10,60,"mixed",15,20,"variable"],Casual:[25,40,"noticeable",35,40,"mostly"],Intermediate:[45,25,"minor",55,60,"mostly"],Advanced:[65,14,"minor",75,75,"mostly"],Expert:[80,7,"tiny",88,88,"mostly"],Master:[92,3,"tiny",96,95,"consistent"],Grandmaster:[98,1,"tiny",100,100,"consistent"],"Engine Maximum":[100,0,"tiny",100,100,"consistent"]};
+function D(n,S2,F,sev,T,P,cons,hum){return{n:n,s:{S:S2,F:F,sev:sev,T:T,P:P,dep:"auto",cons:cons,hum:hum,sk:false}}}
+function defs(){return[D("Training Partner",45,20,"minor",60,65,"mostly",true),D("Casual Friend",25,40,"noticeable",35,40,"variable",true),D("Tactical Beginner",30,35,"major",20,55,"variable",true),D("Competitive Player",75,10,"minor",80,80,"mostly",true),D("Near-Perfect Engine",100,0,"tiny",100,100,"consistent",false),D("Custom Profile",45,20,"minor",60,65,"mostly",true)]}
+var PF={list:defs(),sel:0};
+function pair(id,l,mn,mx){return"<div class='sl'><label for='n_"+id+"'>"+l+"</label><input type='range' id='r_"+id+"' min='"+mn+"' max='"+mx+"' aria-label='"+l+"'><input type='number' id='n_"+id+"' min='"+mn+"' max='"+mx+"' style='width:64px'></div>"}
+function op(a){return a.map(function(o){return"<option value='"+o[0]+"'>"+o[1]+"</option>"}).join("")}
+$("oc").innerHTML="<label><input type='checkbox' id='bo'> Bot plays the other side (choose White or Black in setup first)</label>"+
+"<div class='row'><label>Preset <select id='ps'><option>Custom</option>"+Object.keys(PRE).map(function(k){return"<option>"+k+"</option>"}).join("")+"</select></label></div>"+
+pair("S","Strength 1–100",1,100)+pair("F","Mistake frequency %",0,100)+pair("T","Tactical awareness",0,100)+pair("P","Positional accuracy",0,100)+
+"<div class='row'><label>Severity <select id='sv'>"+op([["tiny","Tiny inaccuracies"],["minor","Minor mistakes"],["noticeable","Noticeable mistakes"],["major","Major blunders"],["mixed","Unpredictable"]])+"</select></label>"+
+"<label>Depth <select id='bd2'>"+op([["auto","Auto from strength"],[2,2],[4,4],[6,6],[8,8],[12,12],[16,16],[20,20],[24,24]])+"</select></label>"+
+"<label>Consistency <select id='cs'>"+op([["consistent","Consistent"],["mostly","Mostly consistent"],["variable","Variable, human-like"]])+"</select></label></div>"+
+"<div class='row'><label><input type='checkbox' id='hu'> Human-like mode</label><label id='skw'><input type='checkbox' id='sk'> Also set engine Skill Level</label><label><input type='checkbox' id='bs' checked> Show bot move analysis</label></div>"+
+"<div class='sm mute' id='oi'></div>"+
+"<div class='row'><label>Profile <select id='pf'></select></label><input id='pn' style='flex:1;min-width:0' aria-label='Profile name'></div><div class='row'><button id='pS'>Save</button><button id='pR'>Rename</button><button id='pD'>Duplicate</button><button id='pX'>Delete</button><button id='pZ'>Defaults</button></div>"+
+"<div class='sm mute'>Presets are behavior settings, not calibrated Elo ratings. Tactical awareness and positional accuracy act on the engine’s candidate scores (overlooked wins, noisy quiet-move judgments), not on separate pin or fork detectors.</div>";
+function nv(id){var x=+$("n_"+id).value;return Math.max(+$("n_"+id).min,Math.min(+$("n_"+id).max,isNaN(x)?0:x))}
+function getS(){return{S:nv("S"),F:nv("F"),T:nv("T"),P:nv("P"),sev:$("sv").value,dep:$("bd2").value,cons:$("cs").value,hum:$("hu").checked,sk:$("sk").checked}}
+function setS(s){["S","F","T","P"].forEach(function(k){$("n_"+k).value=$("r_"+k).value=s[k]});$("sv").value=s.sev;$("bd2").value=s.dep;$("cs").value=s.cons;$("hu").checked=!!s.hum;$("sk").checked=!!s.sk}
+function ctl(){var c=getS();c.on=$("bo").checked;return c}
+function eff(c){var d=c.dep==="auto"?(c.S>=100?24:Math.round(2+c.S*.18)):+c.dep;return{d:d,mt:c.S>=100?5000:200+c.S*15,pool:c.S>=90?3:6,skill:(c.sk&&E.opts["Skill Level"])?Math.round(c.S/5):undefined}}
+function oppInfo(){
+ var c=ctl(),e=eff(c),sk=E.opts["Skill Level"];
+ $("skw").style.display=sk?"":"none";
+ $("oi").innerHTML="<b>Opponent config:</b> depth "+e.d+", "+e.mt+" ms, "+e.pool+" candidate lines, Skill Level "+(e.skill!==undefined?e.skill:sk?"not applied":E.ok?"not advertised":"unknown yet")+". <b>Analysis config (unchanged):</b> depth cap "+$("dp").value+", "+$("tm").value+"s, "+$("ml").value+" lines, full strength."+(c.on&&S.side==="both"?" The bot is idle until you pick White or Black.":"");
+}
+function botTurn(){return $("bo").checked&&S.side!=="both"&&G.turn()!==S.side&&S.ply===S.line.length&&!S.rev&&G.moves().length>0}
+function rng(sd){return function(){sd|=0;sd=sd+0x6D2B79F5|0;var t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(s){var h=2166136261,i;for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function botMove(id){
+ var c=ctl(),e=eff(c),fen=G.fen(),t=G.turn(),job;
+ job={fen:fen,turn:t,dmax:e.d,mt:e.mt,mpv:Math.min(e.pool,G.moves().length),skill:e.skill,fb:function(){setTimeout(function(){if(id===S.wanted)fin(fen,t,null,e,c)},30)}};
+ E.go(job).then(function(j){if(id===S.wanted&&!j.dead&&!j.fbd)fin(fen,t,j.lines,e,c)});
+}
+function fin(fen,t,L,e,c){
+ var ms=G.moves({verbose:true}),mp={},cs=[],mv=t==="w"?1:-1,md=0,k,l,r,res,R,m,u;
+ ms.forEach(function(x){mp[x.from+x.to+(x.promotion||"")]=x});
+ function fc(x){return!!(x.captured||x.promotion||/[+#]/.test(x.san))}
+ if(L){for(k in L)md=Math.max(md,L[k].d);for(k in L){l=L[k];u=l.pv[0];if(l.d>=md-1&&mp[u])cs.push({u:u,cp:cl(num(l.sc)*mv),f:fc(mp[u])})}}
+ if(!cs.length){r=think(ms);u=r.mv.from+r.mv.to+(r.mv.promotion||"");md=r.d;cs=[{u:u,cp:cl(r.score),f:fc(r.mv)}]}
+ R=c.cons==="variable"?Math.random:(c.cons==="mostly"&&Math.random()<.25)?Math.random:rng(hash(fen+c.S+c.F+c.sev+c.T+c.P));
+ res=pick(cs,c,R);if(!mp[res.u])res={u:cs[0].u,b:cs[0].u,loss:0,why:"best"};
+ m=mp[res.u];S.bot={i:S.line.length,before:fen,chosen:res.u,best:res.b,loss:Math.round(res.loss),why:res.why,d:md,vf:false,single:cs.length<2};
+ play(m.from,m.to,m.promotion);
+}
+function kOf(l){return l<=10?0:l<=30?1:l<=80?2:l<=150?3:l<=300?4:5}
+function renderBot(){
+ var b=S.bot,el=$("bp"),ch,bs,k,c2,v,h;
+ if(!b||!$("bs").checked||S.fens[b.i]!==b.before){el.style.display="none";return}
+ ch=pvSan(b.before,[b.chosen],1)[0];bs=pvSan(b.before,[b.best],1)[0];k=kOf(b.loss);
+ h="<b>Opponent bot move (private)</b><div>Played <b>"+(ch?ch.san:b.chosen)+"</b>. Its top candidate was <b>"+(bs?bs.san:b.best)+"</b>. Reason: "+b.why+".</div><div class='sm'>Bot search, depth "+b.d+": estimated loss "+b.loss+" cp, "+CN[k]+". <b>Provisional</b> (shallow bot search"+(b.single?", single candidate":"")+").</div>";
+ if(b.vf){c2=cls(b.i);v=S.evals[b.before];bs=v?pvSan(b.before,[v.best],1)[0]:null;
+  h+=c2?"<div class='sm'>Analysis engine: best "+(bs?bs.san:"?")+", loss about "+Math.max(0,Math.round(c2.loss))+" cp, <b>"+CN[c2.k]+"</b>.</div>":"<div class='sm mute'>Waiting for analysis of the position after the move.</div>"}
+ else h+="<button id='vf'>Verify with analysis engine</button>";
+ el.innerHTML=h;el.style.display="block";
+}
+$("bp").onclick=function(e){
+ var b=S.bot;if(e.target.id!=="vf"||!b||S.rev)return;
+ if(!E.ok){msg("Verification needs Stockfish, which isn’t running.");return}
+ S.rev=true;msg("Verifying with the analysis engine…");
+ E.go({fen:b.before,turn:b.before.split(" ")[1],dmax:+$("dp").value,mt:+$("tm").value*1000,mpv:1}).then(function(j){
+  if(j.lines&&j.lines[1]){keep(b.before,j.lines);b.vf=true}
+  S.rev=false;msg("");analyze();
+ });
+};
+function pfSave(){try{localStorage.setItem("cc.pf1",JSON.stringify(PF))}catch(e){}}
+function pfDraw(){$("pf").innerHTML=PF.list.map(function(p,i){return"<option value='"+i+"'"+(i===PF.sel?" selected":"")+">"+p.n.replace(/</g,"&lt;")+"</option>"}).join("");$("pn").value=PF.list[PF.sel].n}
+function pfUse(){var s=JSON.parse(JSON.stringify(PF.list[PF.sel].s));setS(s);$("ps").value="Custom";pfDraw();oppInfo();if(botTurn())analyze()}
+try{var pj=JSON.parse(localStorage.getItem("cc.pf1"));if(pj&&pj.list&&pj.list.length&&pj.list[pj.sel])PF=pj}catch(e){}
+["S","F","T","P"].forEach(function(k){$("r_"+k).oninput=function(){$("n_"+k).value=this.value};$("n_"+k).oninput=function(){$("r_"+k).value=nv(k)}});
+Array.prototype.forEach.call(document.querySelectorAll("#oc input,#oc select"),function(x){if(/^(ps|pf|pn)$/.test(x.id))return;x.addEventListener("input",function(){if(x.id!=="bo"&&x.id!=="bs")$("ps").value="Custom";oppInfo();if(x.id==="bs")renderBot();else if(botTurn()||x.id==="bo")analyze()});});
+$("ps").onchange=function(){var p=PRE[this.value];if(!p)return;setS({S:p[0],F:p[1],sev:p[2],T:p[3],P:p[4],dep:"auto",cons:p[5],hum:true,sk:$("sk").checked});oppInfo();if(botTurn())analyze()};
+$("pf").onchange=function(){PF.sel=+this.value;pfSave();pfUse()};
+$("pS").onclick=function(){PF.list[PF.sel].s=getS();pfSave();msg("Saved to “"+PF.list[PF.sel].n+"”.")};
+$("pR").onclick=function(){var n=$("pn").value.trim();if(n){PF.list[PF.sel].n=n;pfSave();pfDraw()}};
+$("pD").onclick=function(){PF.list.splice(PF.sel+1,0,{n:PF.list[PF.sel].n+" copy",s:getS()});PF.sel++;pfSave();pfDraw()};
+$("pX").onclick=function(){if(PF.list.length<2){msg("Keep at least one profile.");return}PF.list.splice(PF.sel,1);PF.sel=0;pfSave();pfUse()};
+$("pZ").onclick=function(){PF={list:defs(),sel:0};pfSave();pfUse()};
+setS(PF.list[PF.sel].s);pfDraw();oppInfo();
+E.init();refresh();
+})();
+</script>
+</body>
+</html>
