@@ -203,7 +203,7 @@ function setSt(t,ok){$("st").textContent=t;$("st").className=ok?"ok":""}
 E.fail=function(m){
  if(E.ok||E.failed)return;E.failed=true;try{E.w&&E.w.terminate()}catch(e){}E.w=null;
  setSt("Fallback: built-in shallow search ("+m+")");
- if(E.next){var j=E.next;E.next=null;j.fbd=true;j.res(j)}
+ if(E.next){var j=E.next;E.next=null;j.fbd=true;if(j.fb)j.fb();j.res(j)}
 };
 E.send=function(s){if(E.w)E.w.postMessage(s)};
 E.init=function(){
@@ -223,7 +223,7 @@ E.msg=function(l){
 };
 E.go=function(job){return new Promise(function(res){
  job.res=res;
- if(E.failed){job.fbd=true;res(job);return}
+ if(E.failed){job.fbd=true;if(job.fb)job.fb();res(job);return}
  if(E.next){E.next.dead=true;E.next.res(E.next)}
  E.next=job;
  if(E.run){E.run.dead=true;E.send("stop")}else E.start();
