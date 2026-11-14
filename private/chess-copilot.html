@@ -50,6 +50,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .sl{display:flex;gap:6px;align-items:center;margin:4px 0}.sl label{flex:0 0 140px;font-size:14px;color:var(--mute)}.sl input[type=range]{flex:1;min-width:0}#oc label{font-size:14px;color:var(--mute)}#oc select{max-width:100%}#bp{display:none}
 
 /* Chess Co-Pilot visual polish */
+.piece-flight{position:absolute;z-index:5;width:12.5%;height:12.5%;display:grid;place-items:center;font-size:var(--sz);line-height:1;pointer-events:none;will-change:transform}.flight-destination{opacity:0!important}
 button{transition:transform .16s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;box-shadow:0 1px 0 rgba(255,255,255,.035) inset}
 button:hover{transform:translateY(-1px);border-color:#4fbf7f;box-shadow:0 5px 16px rgba(0,0,0,.2)}button:active{transform:translateY(0) scale(.98)}
 button.pri,button.on{box-shadow:0 5px 18px rgba(79,191,127,.14)}.card{border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.12);transition:border-color .2s ease,transform .2s ease}.card:focus-within{border-color:#385b46}
@@ -150,7 +151,7 @@ var SF="https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js";
 var ST="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 var V={p:1,n:3,b:3,r:5,q:9,k:100},GL={k:"\u265A",q:"\u265B",r:"\u265C",b:"\u265D",n:"\u265E",p:"\u265F"},NM={p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen",k:"king"};
 var CN=["Best","Excellent","Good","Inaccuracy","Mistake","Blunder"],CM=["★","","","?!","?","??"];
-var S={start:ST,line:[],ply:0,side:"w",flip:false,sel:null,pro:null,fens:[ST],evals:{},wanted:0,rev:false};
+var S={start:ST,line:[],ply:0,side:"w",flip:false,sel:null,pro:null,fens:[ST],evals:{},wanted:0,rev:false,flight:[]};
 var G=new Chess(),cur={fen:"",lines:{},depth:0,done:false,eng:""},dl=0,nodes=0;
 function sq(r,c){return "abcdefgh".charAt(c)+(8-r)}
 function msg(t){$("ms").textContent=t||""}
@@ -251,8 +252,14 @@ function refresh(){
  G=build(S.ply);S.sel=null;S.pro=null;draw();hist();analyze();
 }
 function play(f,t,p){
- var r=G.move({from:f,to:t,promotion:p});
+ var r=G.move({from:f,to:t,promotion:p}),fl=[];
  if(!r){msg("Illegal move.");return false}
+ fl.push({from:f,to:t,color:r.color,piece:r.promotion||r.piece});
+ if(r.flags.indexOf("k")>=0||r.flags.indexOf("q")>=0){
+  var rank=r.color==="w"?"1":"8",rookFrom=r.flags.indexOf("k")>=0?"h"+rank:"a"+rank,rookTo=r.flags.indexOf("k")>=0?"f"+rank:"d"+rank;
+  fl.push({from:rookFrom,to:rookTo,color:r.color,piece:"r"});
+ }
+ S.flight=fl;
  S.line=S.line.slice(0,S.ply);S.line.push({from:r.from,to:r.to,promotion:r.promotion,san:r.san});S.ply=S.line.length;msg("");refresh();return true;
 }
 function keep(fen,L){var b=L[1],o;if(!b)return;o=S.evals[fen];if(!o||b.d>=o.d)S.evals[fen]={sc:b.sc,d:b.d,best:b.pv[0]}}
@@ -285,15 +292,35 @@ function draw(){
   if(S.ply>0&&S.line[S.ply-1]){var lm=S.line[S.ply-1];if(n===lm.to)cl2+=" last arrived";if(n===lm.from)cl2+=" last-from";}
   for(k=0;k<hg.length;k++)if(hg[k].s===n)cl2+=hg[k].c===t?" hm":" ho";
   inner="";
-  if(p)inner+="<span class='p"+p.color+"'>"+GL[p.type]+"\uFE0E</span>";
+  if(p){var hiddenFlight=S.flight.some(function(x){return x.to===n});inner+="<span class='p"+p.color+"'>"+GL[p.type]+"\uFE0E</span>";
+  if(p&&hiddenFlight)inner=inner.replace("flight-destination","flight-destination");
   if(lg.some(function(m){return m.to===n}))inner+="<u></u>";
   if(j===0)inner+="<em class='rk'>"+(8-r)+"</em>";
   if(i===7)inner+="<em class='fl'>"+"abcdefgh".charAt(c)+"</em>";
   h+="<div class='"+cl2+"' data-s='"+n+"'>"+inner+"</div>";
  }
  $("bd").innerHTML=h;
+ animateFlights();
  $("pm").innerHTML=S.pro?"<span class='sm mute' style='align-self:center'>Promote to:</span>"+["q","r","b","n"].map(function(x){return"<button data-p='"+x+"'>"+GL[x]+"\uFE0E</button>"}).join(""):"";
  arrows();
+}
+function animateFlights(){
+ var flights=S.flight.slice(),board=$("bd"),reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+ S.flight=[];
+ flights.forEach(function(x){
+  var fc=x.from.charCodeAt(0)-97,fr=8-parseInt(x.from.charAt(1),10),tc=x.to.charCodeAt(0)-97,tr=8-parseInt(x.to.charAt(1),10);
+  if(S.flip){fc=7-fc;fr=7-fr;tc=7-tc;tr=7-tr}
+  var el=document.createElement("span");el.className="piece-flight p"+x.color;el.textContent=GL[x.piece]+"\uFE0E";
+  el.style.left=(fc*12.5)+"%";el.style.top=(fr*12.5)+"%";board.appendChild(el);
+  var dest=board.querySelector('[data-s="'+x.to+'"] .p'+x.color);
+  var finish=function(){el.remove();if(dest)dest.classList.remove("flight-destination")};
+  if(reduce||!el.animate){finish();return}
+  requestAnimationFrame(function(){
+   var dx=(tc-fc)*100,dy=(tr-fr)*100;
+   var animation=el.animate([{transform:"translate3d(0,0,0)"},{transform:"translate3d("+dx+"%, "+dy+"%, 0)"}],{duration:180,easing:"cubic-bezier(.22,.72,.22,1)",fill:"forwards"});
+   animation.onfinish=finish;animation.oncancel=finish;
+  });
+ });
 }
 function xy(s){var f=s.charCodeAt(0)-97,r=+s.charAt(1);return[(S.flip?7-f:f)+.5,(S.flip?r-1:8-r)+.5]}
 function arrows(){
