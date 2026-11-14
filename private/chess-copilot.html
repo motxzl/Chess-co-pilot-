@@ -518,7 +518,7 @@ $("startBot").onclick=function(){
  $("bo").checked=true;$("bs").checked=true;
  $("botSkill").value=level.skill;$("botSkillValue").textContent=String(level.skill);$("botDepth").value=String(level.depth);$("botTime").value=String(level.time);updateEngineSettingsStatus();
  Array.prototype.forEach.call(document.querySelectorAll("[data-side]"),function(b){b.className=b.getAttribute("data-side")===side?"on":""});
- $("ps").value="Custom";oppInfo();closeBotDialog();msg("New game started. You are playing "+(side==="w"?"White":"Black")+".");refresh();
+ updateEngineSettingsStatus();closeBotDialog();msg("New game started. You are playing "+(side==="w"?"White":"Black")+".");refresh();
 };
 
 $("botSkillValue").textContent=$("botSkill").value;updateEngineSettingsStatus();
